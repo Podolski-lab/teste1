@@ -26,3 +26,9 @@ A Skill lê a agenda do Google Calendar do usuário e distribui os lembretes de 
 O tom é de **parceiro compreensivo**: firme o suficiente para não deixar passar em branco, mas nunca punitivo — mais um aliado que nota quando algo importante está sendo deixado de lado do que um chefe cobrando resultado.
 
 O resultado: uma pressão externa constante e de baixo esforço, que substitui a autocobrança que falha — sem exigir nenhuma disciplina adicional do usuário além de responder quando a Alexa pergunta.
+
+## What Makes This Different
+
+Não existe aqui nenhuma vantagem competitiva no sentido de mercado — isso não compete com Todoist, Google Tasks ou os apps de hábito existentes, nem pretende. A diferença real é o encaixe exato com o problema de uma pessoa só: onde apps genéricos tratam toda tarefa igual, este assistente é desenhado em cima da estrutura real de vida do usuário (os 4 pilares e seus propósitos específicos) e do mecanismo psicológico que comprovadamente falta pra ele — compromisso verbal, não visual.
+
+A vantagem não é técnica nem de mercado. É que ninguém mais vai construir exatamente essa ferramenta pra essa pessoa.
