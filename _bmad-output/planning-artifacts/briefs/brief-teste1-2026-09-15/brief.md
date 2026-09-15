@@ -32,3 +32,11 @@ O resultado: uma pressão externa constante e de baixo esforço, que substitui a
 Não existe aqui nenhuma vantagem competitiva no sentido de mercado — isso não compete com Todoist, Google Tasks ou os apps de hábito existentes, nem pretende. A diferença real é o encaixe exato com o problema de uma pessoa só: onde apps genéricos tratam toda tarefa igual, este assistente é desenhado em cima da estrutura real de vida do usuário (os 4 pilares e seus propósitos específicos) e do mecanismo psicológico que comprovadamente falta pra ele — compromisso verbal, não visual.
 
 A vantagem não é técnica nem de mercado. É que ninguém mais vai construir exatamente essa ferramenta pra essa pessoa.
+
+## Who This Serves
+
+**Usuário primário e único: o próprio criador do projeto.**
+
+Alguém que sabe exatamente o que precisa fazer em cada área da vida — saúde, carreira, projetos pessoais — mas que historicamente falha em executar por falta de pressão externa, não por falta de plano. Já perdeu terreno real por isso (um projeto de negócio parado por um ano inteiro é prova disso). Prefere ser cutucado com firmeza gentil, não com dureza.
+
+**Sucesso pra essa pessoa** parece: ao final de algumas semanas de uso, olhar pra trás e ver os 4 pilares recebendo atenção de forma mais equilibrada do que antes — especialmente aquele projeto pessoal que ficou um ano parado voltando a andar.
