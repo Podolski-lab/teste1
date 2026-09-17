@@ -40,3 +40,10 @@ A vantagem não é técnica nem de mercado. É que ninguém mais vai construir e
 Alguém que sabe exatamente o que precisa fazer em cada área da vida — saúde, carreira, projetos pessoais — mas que historicamente falha em executar por falta de pressão externa, não por falta de plano. Já perdeu terreno real por isso (um projeto de negócio parado por um ano inteiro é prova disso). Prefere ser cutucado com firmeza gentil, não com dureza.
 
 **Sucesso pra essa pessoa** parece: ao final de algumas semanas de uso, olhar pra trás e ver os 4 pilares recebendo atenção de forma mais equilibrada do que antes — especialmente aquele projeto pessoal que ficou um ano parado voltando a andar.
+
+## Success Criteria
+
+- **Uso sustentado**: responde ativamente aos lembretes/checkpoints em pelo menos 5 dos 7 dias da semana, por pelo menos 4 semanas seguidas.
+- **Movimento no pilar mais travado**: o projeto de negócio parado sai do zero — pelo menos 1 marco concreto de progresso por mês depois de ativar o assistente.
+- **Equilíbrio entre pilares**: nenhum dos 4 pilares fica mais de 1 semana sem receber atenção/resposta.
+- **Custo operacional**: mantém-se dentro do free tier da AWS (essencialmente R$0/mês de infraestrutura).
