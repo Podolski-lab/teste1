@@ -47,3 +47,23 @@ Alguém que sabe exatamente o que precisa fazer em cada área da vida — saúde
 - **Movimento no pilar mais travado**: o projeto de negócio parado sai do zero — pelo menos 1 marco concreto de progresso por mês depois de ativar o assistente.
 - **Equilíbrio entre pilares**: nenhum dos 4 pilares fica mais de 1 semana sem receber atenção/resposta.
 - **Custo operacional**: mantém-se dentro do free tier da AWS (essencialmente R$0/mês de infraestrutura).
+
+## Scope
+
+**Na v1:**
+- Estrutura de 4 pilares (Saúde, Profissional, Projetos Pessoais, Lazer)
+- Lembretes por voz frequentes e sutis das tarefas programadas
+- Integração com Google Calendar
+- Reconexão com o propósito maior antes de cobrar
+- Lembrete de horário de início de cada tarefa
+- Checkpoint com resposta verbal obrigatória
+- Relatório de vergonha semanal (resumo falado)
+
+**Explicitamente fora da v1** (candidatos a v2, não bloqueiam o lançamento):
+- Detecção de presença (pausar alertas fora de casa)
+- Som de progresso / reforço positivo sonoro
+- Briefing semanal falado detalhado
+- Sugestão automática de post no LinkedIn
+- Termômetro de abandono por pilar
+- Check de energia antes de sugerir tarefa
+- Rebalanceamento automático por evento inesperado no calendário
