@@ -11,13 +11,13 @@ updated: 2026-09-15
 
 Este é um assistente pessoal de produtividade construído como uma Skill customizada para Alexa, feito pra resolver um problema bem específico: o usuário sabe exatamente o que precisa fazer em cada área da vida — saúde, carreira, projetos pessoais — mas historicamente falha em executar por falta de pressão externa, não de plano. O custo é real e concreto: uma ideia de negócio, desenvolvida com um amigo, ficou um ano inteiro sem nenhum encaminhamento por essa exata razão.
 
-A solução organiza a vida em 4 pilares (Saúde, Profissional, Projetos Pessoais, Lazer), cada um com seu propósito próprio, e usa lembretes de voz frequentes e sutis — lidos a partir do Google Calendar — pra manter o compromisso vivo ao longo do dia. Checkpoints exigem resposta verbal e reconectam cada tarefa ao seu propósito maior, num tom de parceiro compreensivo — firme, nunca punitivo.
+A solução organiza a vida em 4 pilares (Saúde, Profissional, Projetos Pessoais, Lazer), cada um com seu propósito próprio, e usa lembretes de voz frequentes e sutis — com horários lidos a partir do Google Calendar — pra manter o compromisso vivo ao longo do dia. Checkpoints exigem resposta verbal e reconectam cada tarefa ao seu propósito maior, num tom de parceiro compreensivo — firme, nunca punitivo.
 
 É um projeto pessoal e de baixo custo (dentro do free tier da AWS), sem pretensão de mercado: a vantagem não é competitiva, é o encaixe exato com o padrão de comportamento de uma única pessoa. Sucesso aqui significa uso consistente (5 de 7 dias, por pelo menos 4 semanas seguidas) e, acima de tudo, ver aquele projeto de negócio parado finalmente voltar a andar — com relatórios que tornam esse progresso visível ao longo do tempo.
 
 ## The Problem
 
-Ter clareza sobre o que precisa ser feito não é o problema. O usuário sabe exatamente quais são as tarefas que o levam adiante em cada frente da sua vida — saúde, carreira, projetos pessoais. O que falta é a pressão externa que transforma essa clareza em execução.
+Ter clareza sobre o que precisa ser feito não é o problema. O usuário sabe exatamente quais são as tarefas que o levam adiante em cada frente da sua vida, da saúde à carreira, passando pelos projetos pessoais. O que falta é a pressão externa que transforma essa clareza em execução.
 
 O custo disso é real e mensurável: há um ano, ele se comprometeu com um amigo a estruturar o modelo de negócio de uma ideia de tecnologia que os dois vinham desenvolvendo juntos. Passado esse ano inteiro, **nenhum encaminhamento aconteceu** — não por falta de capacidade ou de plano, mas porque não havia ninguém (nem nada) cobrando essa execução no dia a dia. A ideia continua parada, e a janela de oportunidade que ela representava, também.
 
@@ -27,7 +27,11 @@ Ferramentas de produtividade convencionais (listas de tarefas, calendários, app
 
 Uma Skill customizada para Alexa que transforma tarefas e compromissos — organizados em 4 pilares de vida (Saúde, Profissional, Projetos Pessoais, Lazer) — em lembretes de voz frequentes e sutis, ativados ao longo do dia sem que o usuário precise abrir um app ou consultar uma lista.
 
-A Skill lê a agenda do Google Calendar do usuário e distribui os lembretes de acordo com os horários programados. Cada lembrete reconecta a tarefa ao seu propósito maior ("você ia treinar hoje pra chegar na meta de dezembro — treinou?"), e pode exigir uma resposta verbal — um compromisso falado que pesa mais do que silenciar uma notificação. Semanalmente, um breve resumo falado reflete de volta o que avançou e o que ficou parado em cada pilar.
+A Skill lê a agenda do Google Calendar do usuário e distribui os lembretes de acordo com os horários programados. O ciclo tem três momentos:
+
+1. **O lembrete** reconecta a tarefa ao seu propósito maior ("você ia treinar hoje pra chegar na meta de dezembro — treinou?").
+2. **O checkpoint** pode exigir uma resposta verbal — um compromisso falado que pesa mais do que silenciar uma notificação.
+3. **O resumo semanal**, falado, mostra o que avançou e o que ficou parado em cada pilar.
 
 O tom é de **parceiro compreensivo**: firme o suficiente para não deixar passar em branco, mas nunca punitivo — mais um aliado que nota quando algo importante está sendo deixado de lado do que um chefe cobrando resultado.
 
@@ -41,11 +45,7 @@ A vantagem não é técnica nem de mercado. É que ninguém mais vai construir e
 
 ## Who This Serves
 
-**Usuário primário e único: o próprio criador do projeto.**
-
-Alguém que sabe exatamente o que precisa fazer em cada área da vida — saúde, carreira, projetos pessoais — mas que historicamente falha em executar por falta de pressão externa, não por falta de plano. Já perdeu terreno real por isso (um projeto de negócio parado por um ano inteiro é prova disso). Prefere ser cutucado com firmeza gentil, não com dureza.
-
-**Sucesso pra essa pessoa** parece: ao final de algumas semanas de uso, olhar pra trás e ver os 4 pilares recebendo atenção de forma mais equilibrada do que antes — especialmente aquele projeto pessoal que ficou um ano parado voltando a andar.
+**Usuário primário e único: o próprio criador do projeto.** Prefere ser cutucado com firmeza gentil, não com dureza.
 
 ## Success Criteria
 
