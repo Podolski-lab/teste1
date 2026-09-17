@@ -67,3 +67,11 @@ Alguém que sabe exatamente o que precisa fazer em cada área da vida — saúde
 - Termômetro de abandono por pilar
 - Check de energia antes de sugerir tarefa
 - Rebalanceamento automático por evento inesperado no calendário
+
+## Vision
+
+Em dois ou três anos, o sucesso não é um produto maior ou mais usuários — é o hábito virando invisível. Os 4 pilares deixam de precisar de cobrança pesada porque o comportamento já virou rotina; o assistente evolui de "cobrador" pra "parceiro de manutenção", e os itens do "fora da v1" (detecção de presença, briefing mais rico, rebalanceamento automático) entram naturalmente conforme o sistema básico prova que funciona.
+
+Os relatórios, que começam como um resumo semanal simples, amadurecem em algo mais valioso: uma visão clara e acumulada do progresso real em cada objetivo ao longo do tempo — não só "o que ficou pra trás essa semana", mas "quanto isso avançou desde que comecei". É essa visibilidade de longo prazo, mais do que qualquer lembrete isolado, que transforma esforço disperso em prova concreta de progresso.
+
+Mas o verdadeiro indicador de sucesso continua sendo simples: aquela ideia de negócio parada há um ano finalmente ganha um modelo de negócio estruturado — não porque o assistente fez o trabalho, mas porque ele não deixou o usuário esquecer que o trabalho precisava ser feito, e os relatórios provam, com dados, que ele avançou.
