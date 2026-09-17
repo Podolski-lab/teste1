@@ -7,7 +7,13 @@ updated: 2026-09-15
 
 # Product Brief: Assistente de Produtividade Pessoal com Alexa
 
-_(rascunho em construção — conversa de discovery em andamento)_
+## Executive Summary
+
+Este é um assistente pessoal de produtividade construído como uma Skill customizada para Alexa, feito pra resolver um problema bem específico: o usuário sabe exatamente o que precisa fazer em cada área da vida — saúde, carreira, projetos pessoais — mas historicamente falha em executar por falta de pressão externa, não de plano. O custo é real e concreto: uma ideia de negócio, desenvolvida com um amigo, ficou um ano inteiro sem nenhum encaminhamento por essa exata razão.
+
+A solução organiza a vida em 4 pilares (Saúde, Profissional, Projetos Pessoais, Lazer), cada um com seu propósito próprio, e usa lembretes de voz frequentes e sutis — lidos a partir do Google Calendar — pra manter o compromisso vivo ao longo do dia. Checkpoints exigem resposta verbal e reconectam cada tarefa ao seu propósito maior, num tom de parceiro compreensivo — firme, nunca punitivo.
+
+É um projeto pessoal e de baixo custo (dentro do free tier da AWS), sem pretensão de mercado: a vantagem não é competitiva, é o encaixe exato com o padrão de comportamento de uma única pessoa. Sucesso aqui significa uso consistente (5 de 7 dias, por pelo menos 4 semanas seguidas) e, acima de tudo, ver aquele projeto de negócio parado finalmente voltar a andar — com relatórios que tornam esse progresso visível ao longo do tempo.
 
 ## The Problem
 
