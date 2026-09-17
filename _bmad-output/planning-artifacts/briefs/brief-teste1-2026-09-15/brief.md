@@ -1,8 +1,8 @@
 ---
 title: Assistente de Produtividade Pessoal com Alexa
-status: draft
+status: final
 created: 2026-09-15
-updated: 2026-09-15
+updated: 2026-09-17
 ---
 
 # Product Brief: Assistente de Produtividade Pessoal com Alexa
