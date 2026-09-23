@@ -1,7 +1,7 @@
 ---
 name: Assistente de Produtividade Pessoal com Alexa
-status: draft
-updated: 2026-09-22
+status: final
+updated: 2026-09-23
 sources:
   - _bmad-output/planning-artifacts/prds/prd-teste1-2026-09-17/prd.md
   - _bmad-output/planning-artifacts/briefs/brief-teste1-2026-09-15/brief.md
@@ -15,6 +15,10 @@ Superfície única: voz, via um dispositivo Alexa (Echo) — **[ASSUMPTION: apen
 
 **[ASSUMPTION: nome de invocação da Skill ainda não definido — usado como `{nome-da-skill}` neste documento; a definir na arquitetura/build.]**
 
+A associação entre evento do calendário e pilar/propósito (FR-11 do PRD) é feita manualmente pelo próprio usuário direto no backend — não existe intent de voz nem tela pra isso. Fora de escopo desta spine por design: essa configuração não tem superfície de experiência na v1.
+
+As assumptions do FR-3 do PRD (eventos do calendário sem horário de fim explícito; tarefas de pilares diferentes sobrepostas) valem também aqui — comportamento não definido nesses casos nesta v1. Ver `prd.md` § Assumptions Index; não duplicado neste documento.
+
 ## Information Architecture
 
 Não há telas — a "arquitetura de informação" de uma Skill de voz é o conjunto de intents que ela reconhece e quando cada um está disponível.
@@ -25,7 +29,7 @@ Não há telas — a "arquitetura de informação" de uma Skill de voz é o conj
 | `CheckpointQuestion` | Rotina agendada (fim da janela da tarefa, FR-3) | Sempre — proativo |
 | `CheckpointYesIntent` / `CheckpointNoIntent` | Resposta verbal do usuário | Estado `AwaitingCheckpointResponse` / `AwaitingCheckpointRetry` |
 | `RescheduleTimeIntent` (slot: novo horário/dia) | Resposta verbal após `CheckpointNoIntent` | Estado `AwaitingReschedule` |
-| `WeeklyAvailabilityQuestion` | Rotina agendada (sexta à tarde, retry domingo — FR-7/FR-8) | Sempre — proativo |
+| `WeeklyAvailabilityQuestion` | Rotina agendada (sexta 18h, retry domingo 20h — FR-7/FR-8) | Sempre — proativo |
 | `AvailabilityYesIntent` / `AvailabilityNoIntent` | Resposta verbal do usuário | Estado `AwaitingWeeklyAvailability(Retry)` |
 | `WeeklySummaryOnDemandIntent` **(novo — fora do PRD original)** | Usuário chama a Skill espontaneamente ("Alexa, pergunta ao {nome-da-skill} o resumo da semana") | Sempre — sob demanda |
 | `AMAZON.FallbackIntent` | Fala não reconhecida | Qualquer estado aguardando resposta |
@@ -51,6 +55,10 @@ Microcopy — a postura de marca ("parceiro compreensivo") vive em `DESIGN.md.Br
 
 Vocabulário de confirmação deve aceitar variação natural, não só "sim"/"não" literais — **[ASSUMPTION: o modelo de intent do Alexa NLU mapeia sinônimos comuns ("fiz", "consegui", "não deu", "ainda não") para `CheckpointYesIntent`/`CheckpointNoIntent`; lista exata de utterances a definir na arquitetura.]**
 
+Duas resoluções tonais do brief original, registradas aqui em vez de deixadas implícitas:
+- **Cadência dos lembretes**: o brief pede lembretes "frequentes e sutis ao longo do dia"; esta spine segue a decisão do PRD de um único lembrete + silêncio até o checkpoint (trade-off já registrado no PRD, § Fora do Escopo v1). A "frequência" do produto acontece entre tarefas diferentes ao longo do dia, não dentro de uma mesma tarefa.
+- **"Relatório de vergonha" → encorajamento**: o brief batiza o resumo semanal de "relatório de vergonha", mas o tom especificado (NFR-3, "nunca punitivo") resolve isso a favor do encorajamento — leitura fiel ao espírito do brief ("parceiro compreensivo" no seu próprio Executive Summary), mas uma resolução deliberada, não uma continuidade automática.
+
 ## Component Patterns
 
 Comportamental — não há especificação visual (não existe `DESIGN.md.Components` para este produto).
@@ -61,7 +69,7 @@ Comportamental — não há especificação visual (não existe `DESIGN.md.Compo
 | Checkpoint sim/não | Fim da janela da tarefa | Exige resposta verbal; ver Reprompt Pattern abaixo. |
 | Sugestão de reagendamento | Após `CheckpointNoIntent` | Alexa propõe ativamente um horário — não pergunta em aberto "quando você quer remarcar?" sem alternativa. |
 | Gate de disponibilidade | Antes do resumo semanal | Pergunta sim/não antes de entregar conteúdo — nunca invade com o resumo sem esse aceite. |
-| Leitura por pilar | Corpo do resumo semanal | Lista sequencial pilar a pilar: % + tarefas feitas + tarefas não feitas, por pilar. |
+| Leitura por pilar | Corpo do resumo semanal | Lista sequencial pilar a pilar: % + tarefas feitas + tarefas não feitas, por pilar. Checkpoints sem resposta (FR-5) contam como não feitas no % e na lista — a spine de voz não abre uma terceira categoria audível, mas o dado fica registrado distintamente no backend para uso futuro (ex.: relatórios mais ricos em v2). |
 | Resumo sob demanda | `WeeklySummaryOnDemandIntent` | Mesma leitura por pilar do resumo agendado — sem o gate de disponibilidade (o usuário já pediu). |
 
 ## State Patterns
@@ -72,7 +80,7 @@ Comportamental — não há especificação visual (não existe `DESIGN.md.Compo
 | `AwaitingCheckpointResponse` | `CheckpointQuestion` disparado | Resposta em até ~10s → registra; silêncio → `AwaitingCheckpointRetry` |
 | `AwaitingCheckpointRetry` | Silêncio em `AwaitingCheckpointResponse`, ou fala não reconhecida | Resposta em até ~10s → registra; silêncio de novo → `SessionEnded` (sem novas tentativas, FR-4) |
 | `AwaitingReschedule` | `CheckpointNoIntent` recebido | Novo horário aceito → registra reagendamento → `SessionEnded` |
-| `AwaitingWeeklyAvailability` | `WeeklyAvailabilityQuestion` disparado (sexta) | Sim → `DeliveringWeeklySummary`; não → agenda retry de domingo; silêncio ~10s → `AwaitingWeeklyAvailabilityRetry` |
+| `AwaitingWeeklyAvailability` | `WeeklyAvailabilityQuestion` disparado (sexta 18h) | Sim → `DeliveringWeeklySummary`; não → agenda retry de domingo 20h; silêncio ~10s → `AwaitingWeeklyAvailabilityRetry` |
 | `AwaitingWeeklyAvailabilityRetry` | Silêncio em `AwaitingWeeklyAvailability` | Resposta → segue fluxo; silêncio de novo → aguarda retry de domingo |
 | `DeliveringWeeklySummary` | Disponibilidade confirmada (agendado ou sob demanda) | Leitura completa por pilar → fechamento de encorajamento → `SessionEnded` |
 | `SessionEnded` | Qualquer fluxo completo ou abandonado | Volta a `Idle` |
@@ -107,15 +115,15 @@ Comportamental — não há contraste visual a especificar (produto sem tela).
 
 Falha: Lucas não responde ao checkpoint → Alexa insiste uma vez (~10s depois) → silêncio de novo → encerra sem tentar de novo, sem registrar reagendamento algum (fica em aberto até o próximo ciclo natural da tarefa).
 
-### Flow 2 — Resumo semanal agendado (Lucas, sexta-feira à tarde)
+### Flow 2 — Resumo semanal agendado (Lucas, sexta-feira, 18h)
 
 1. A Alexa pergunta: *"Posso fazer o resumo semanal agora? Você está disponível?"*
 2. Lucas confirma disponibilidade.
 3. A Alexa percorre os 4 pilares, um a um: percentual de tarefas concluídas + lista nominal do que foi feito e do que ficou pra trás.
-4. **Climax**: chega a vez do pilar Projetos Pessoais — o projeto de negócio parado há um ano. O número desse pilar específico é o que realmente importa (SM-2 no PRD); é o momento em que o resumo deixa de ser estatística e vira o termômetro real do propósito do produto.
+4. **Climax**: chega a vez do pilar Projetos Pessoais — o projeto de negócio parado há um ano, desenvolvido junto com um amigo, com um compromisso social real por trás (não é só uma tarefa pessoal esquecida). O número desse pilar específico é o que realmente importa (SM-2 no PRD); é o momento em que o resumo deixa de ser estatística e vira o termômetro real do propósito do produto — e da promessa feita a outra pessoa.
 5. A Alexa encerra com uma mensagem de encorajamento ligada ao propósito maior.
 
-Falha: Lucas não está disponível na sexta → Alexa reconhece e agenda retry pra domingo, final de tarde/noite → mesmo fluxo se repete lá.
+Falha: Lucas não está disponível na sexta → Alexa reconhece e agenda retry pra domingo, 20h → mesmo fluxo se repete lá.
 
 ### Flow 3 — Resumo sob demanda (Lucas, num sábado qualquer, curioso sobre o andamento) **(novo)**
 

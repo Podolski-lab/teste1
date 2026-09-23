@@ -1,8 +1,8 @@
 ---
 name: Assistente de Produtividade Pessoal com Alexa
 description: Identidade sonora de uma Skill de voz pura (sem tela) — não há superfície visual a especificar nesta v1.
-status: draft
-updated: 2026-09-22
+status: final
+updated: 2026-09-23
 sources:
   - _bmad-output/planning-artifacts/prds/prd-teste1-2026-09-17/prd.md
 ---

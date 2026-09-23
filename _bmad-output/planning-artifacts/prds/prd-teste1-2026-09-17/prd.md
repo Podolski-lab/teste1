@@ -2,7 +2,7 @@
 title: Assistente de Produtividade Pessoal com Alexa
 status: final
 created: 2026-09-17
-updated: 2026-09-18
+updated: 2026-09-23
 ---
 
 # PRD: Assistente de Produtividade Pessoal com Alexa
@@ -46,8 +46,8 @@ Quando o usuário confirma disponibilidade, a Alexa apresenta o balanço da sema
 - **FR-6**: Quando o usuário reportar que não executou a tarefa, a Skill deve responder em tom compreensivo (nunca punitivo) e sugerir ativamente um novo horário para reprogramá-la. Exemplo aceitável: "tudo bem, registrado aqui — que tal tentarmos amanhã no mesmo horário?". Não aceitável: cobrança, comparação com outras semanas, ou silêncio sem reconhecimento.
 
 **Resumo Semanal**
-- **FR-7**: A Skill deve iniciar um resumo semanal na sexta-feira, no período da tarde (aproximadamente 14h–18h), perguntando antes se o usuário está disponível.
-- **FR-8**: Se o usuário não estiver disponível na sexta, a Skill deve tentar novamente no domingo, no final da tarde/noite (aproximadamente 18h–21h).
+- **FR-7**: A Skill deve iniciar um resumo semanal na sexta-feira, às 18h, perguntando antes se o usuário está disponível.
+- **FR-8**: Se o usuário não estiver disponível na sexta, a Skill deve tentar novamente no domingo, às 20h.
 - **FR-9**: O resumo semanal deve apresentar, por pilar, o percentual de tarefas programadas concluídas e a lista nominal das tarefas feitas e não feitas.
 - **FR-10**: O resumo semanal deve encerrar com uma mensagem de encorajamento conectada ao propósito maior do usuário.
 
