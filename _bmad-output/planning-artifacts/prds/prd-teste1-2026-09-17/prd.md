@@ -53,7 +53,7 @@ Quando o usuário confirma disponibilidade, a Alexa apresenta o balanço da sema
 - **FR-12**: A Skill deve permitir que o usuário peça o resumo semanal sob demanda, a qualquer momento, por invocação direta — entregando o mesmo conteúdo do resumo agendado (FR-9/FR-10), sem o gate de disponibilidade do FR-7 (o pedido explícito já é o consentimento). Capacidade identificada durante o discovery de UX, não no discovery original deste PRD — ver `EXPERIENCE.md` § Key Flows, Flow 3.
 
 **Configuração de Pilares & Propósitos**
-- **FR-11**: Cada evento do Google Calendar deve poder ser associado a um pilar (Saúde, Profissional, Projetos Pessoais, Lazer) e a um propósito maior. Na v1, essa associação é feita manualmente pelo próprio usuário diretamente no backend — sem comando de voz ou interface de configuração na Skill.
+- **FR-11**: Cada evento do Google Calendar deve poder ser associado a um pilar (Saúde, Profissional, Projetos Pessoais, Lazer) e a um propósito maior. Na v1, essa associação é feita manualmente pelo próprio usuário, através de um script de linha de comando local — sem comando de voz ou interface de configuração na Skill.
 
 ### Assumptions Index
 - FR-1, FR-3: eventos do calendário sempre têm horário de fim explícito; tarefas nunca se sobrepõem.

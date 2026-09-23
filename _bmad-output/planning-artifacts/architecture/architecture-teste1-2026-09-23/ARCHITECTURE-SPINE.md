@@ -54,11 +54,11 @@ A restrição de plataforma que molda tudo isso: uma Skill customizada não pode
 - **Prevents:** nomes de trigger inconsistentes entre o que o Poller dispara e o que está registrado nas Rotinas do usuário; payload duplicando dado que já vive no DynamoDB (e podendo divergir dele)
 - **Rule:** exatamente duas fontes de trigger, pré-registradas: `reminder-trigger` e `checkpoint-trigger`. Payload mínimo: `{ task_id }` — a Custom Task correspondente, ao rodar, lê o resto (`pillar`, `purpose`, `task_title`) direto do item `TaskInstances` via `task_id`. Isso é o que dá ao FR-2 seu trajeto de dados: o texto falado do lembrete vem do domínio lendo esse item, nunca de um payload separado que poderia ficar desatualizado. O resumo semanal (FR-7/FR-8/FR-12) não usa Custom Trigger — vai direto por Rotinas de horário fixo apontando pra sua própria Custom Task, ou por invocação direta do usuário (FR-12 sob demanda: `LaunchRequest`/intent comum, sem Rotina nenhuma envolvida).
 
-### AD-5 — Config de pilar/propósito é dado, não código
+### AD-5 — Config de pilar/propósito é dado, não código, editável pelo próprio usuário via CLI local
 
 - **Binds:** FR-11
-- **Prevents:** alterar a associação evento↔pilar exigir redeploy do Lambda
-- **Rule:** mapeamento vive na tabela `PillarConfig` (DynamoDB), editada fora da aplicação (AWS CLI/console). Nenhum caminho de código nos Lambdas escreve nessa tabela na v1 — é somente leitura do ponto de vista da aplicação, condizente com FR-11 (sem comando de voz nem interface de configuração). **[NOTE FOR PM: FR-11 diz "o próprio usuário" edita; esta v1 do spine assume que sou eu (Claude) quem mantém a tabela via CLI, o que é uma leitura diferente. Preciso da sua confirmação — ver seção de triagem.]**
+- **Prevents:** alterar a associação evento↔pilar exigir redeploy do Lambda ou depender de outra pessoa pra rodar o ajuste
+- **Rule:** mapeamento vive na tabela `PillarConfig` (DynamoDB). Único caminho de escrita: um script de linha de comando (`scripts/associar-pilar.ts`, roda local com as credenciais AWS do próprio usuário, mesma toolchain do `sam deploy`) que o usuário executa diretamente — não uma interface de voz nem tela na Skill, condizente com FR-11. Os Lambdas de aplicação (Skill Handler, Poller) só leem essa tabela, nunca escrevem.
 
 ### AD-6 — Credenciais nunca passam pela sessão de implementação
 
@@ -217,6 +217,8 @@ erDiagram
       dynamoTaskRepository.ts
       googleCalendarClient.ts
       alexaTriggerClient.ts
+  scripts/
+    associar-pilar.ts     # CLI local do usuário - único caminho de escrita em PillarConfig (AD-5)
   test/
     domain/               # testes do domínio, sem mocks de AWS/Alexa
 ```

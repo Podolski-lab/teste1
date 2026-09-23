@@ -15,7 +15,7 @@ Superfície única: voz, via um dispositivo Alexa (Echo) — **[ASSUMPTION: apen
 
 **[ASSUMPTION: nome de invocação da Skill ainda não definido — usado como `{nome-da-skill}` neste documento; a definir na arquitetura/build.]**
 
-A associação entre evento do calendário e pilar/propósito (FR-11 do PRD) é feita manualmente pelo próprio usuário direto no backend — não existe intent de voz nem tela pra isso. Fora de escopo desta spine por design: essa configuração não tem superfície de experiência na v1.
+A associação entre evento do calendário e pilar/propósito (FR-11 do PRD) é feita manualmente pelo próprio usuário via script de linha de comando local — não existe intent de voz nem tela pra isso. Fora de escopo desta spine por design: essa configuração não tem superfície de experiência de voz/visual na v1 (é uma ferramenta de terminal, coberta na arquitetura).
 
 As assumptions do FR-3 do PRD (eventos do calendário sem horário de fim explícito; tarefas de pilares diferentes sobrepostas) valem também aqui — comportamento não definido nesses casos nesta v1. Ver `prd.md` § Assumptions Index; não duplicado neste documento.
 
