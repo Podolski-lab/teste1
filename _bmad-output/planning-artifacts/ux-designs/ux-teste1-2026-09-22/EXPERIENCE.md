@@ -31,11 +31,11 @@ Não há telas — a "arquitetura de informação" de uma Skill de voz é o conj
 | `RescheduleTimeIntent` (slot: novo horário/dia) | Resposta verbal após `CheckpointNoIntent` | Estado `AwaitingReschedule` |
 | `WeeklyAvailabilityQuestion` | Rotina agendada (sexta 18h, retry domingo 20h — FR-7/FR-8) | Sempre — proativo |
 | `AvailabilityYesIntent` / `AvailabilityNoIntent` | Resposta verbal do usuário | Estado `AwaitingWeeklyAvailability(Retry)` |
-| `WeeklySummaryOnDemandIntent` **(novo — fora do PRD original)** | Usuário chama a Skill espontaneamente ("Alexa, pergunta ao {nome-da-skill} o resumo da semana") | Sempre — sob demanda |
+| `WeeklySummaryOnDemandIntent` (FR-12) | Usuário chama a Skill espontaneamente ("Alexa, pergunta ao {nome-da-skill} o resumo da semana") | Sempre — sob demanda |
 | `AMAZON.FallbackIntent` | Fala não reconhecida | Qualquer estado aguardando resposta |
 | `AMAZON.StopIntent` / `AMAZON.CancelIntent` | "para", "cancela" | Qualquer estado ativo |
 
-`WeeklySummaryOnDemandIntent` surgiu neste discovery de UX — o PRD (FR-7/FR-8) só cobria o disparo proativo pela Skill. **[NOTE FOR PM: candidato a virar um FR novo no PRD — invocação sob demanda do resumo semanal.]**
+`WeeklySummaryOnDemandIntent` surgiu neste discovery de UX e foi formalizado no PRD como FR-12.
 
 ## Voice and Tone
 
@@ -125,9 +125,7 @@ Falha: Lucas não responde ao checkpoint → Alexa insiste uma vez (~10s depois)
 
 Falha: Lucas não está disponível na sexta → Alexa reconhece e agenda retry pra domingo, 20h → mesmo fluxo se repete lá.
 
-### Flow 3 — Resumo sob demanda (Lucas, num sábado qualquer, curioso sobre o andamento) **(novo)**
+### Flow 3 — Resumo sob demanda (Lucas, num sábado qualquer, curioso sobre o andamento)
 
 1. Lucas chama a Skill espontaneamente: *"Alexa, pergunta ao {nome-da-skill} o resumo da semana."*
 2. A Alexa entrega o mesmo conteúdo do Flow 2 (passos 3–5), sem o gate de disponibilidade — o pedido explícito do usuário já é o consentimento.
-
-**[NOTE FOR PM: este flow não existe no PRD atual — nasceu da pergunta de invocação neste discovery de UX. Recomendo abrir uma atualização do PRD (`bmad-prd`, modo Update) pra formalizar como FR antes de ir pra arquitetura.]**
