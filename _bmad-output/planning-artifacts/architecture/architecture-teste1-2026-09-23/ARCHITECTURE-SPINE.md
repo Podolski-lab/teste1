@@ -5,7 +5,7 @@ purpose: build-substrate
 altitude: initiative
 paradigm: 'Hexagonal leve (Ports & Adapters)'
 scope: 'Skill customizada para Alexa (backend Lambda, integração Google Calendar, agendamento de rotinas, dados de pilares/propósitos/checkpoints)'
-status: draft
+status: final
 created: '2026-09-23'
 updated: '2026-09-23'
 binds: [FR-1, FR-2, FR-3, FR-4, FR-5, FR-6, FR-7, FR-8, FR-9, FR-10, FR-11, FR-12, NFR-1, NFR-2, NFR-3]
@@ -13,7 +13,8 @@ sources:
   - _bmad-output/planning-artifacts/prds/prd-teste1-2026-09-17/prd.md
   - _bmad-output/planning-artifacts/ux-designs/ux-teste1-2026-09-22/EXPERIENCE.md
   - _bmad-output/planning-artifacts/briefs/brief-teste1-2026-09-15/addendum.md
-companions: []
+companions:
+  - "Deck visual: https://claude.ai/artifact/CrdYQKwNZsRD1YkVYDNrGG"
 ---
 
 # Architecture Spine — Assistente de Produtividade Pessoal com Alexa
