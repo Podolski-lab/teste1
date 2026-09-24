@@ -97,3 +97,137 @@ Você configura suas tarefas por pilar (CLI local) e, a partir daí, a Alexa lem
 Toda sexta às 18h (ou domingo às 20h, se você não puder na sexta), a Alexa faz um balanço da semana, pilar por pilar — o que foi feito, o que ficou pra trás, e fecha com uma mensagem de encorajamento. Você também pode pedir esse resumo a qualquer momento, sem esperar o horário fixo. Constrói em cima dos dados que o Epic 1 já está registrando a cada checkpoint.
 **FRs covered:** FR-7, FR-8, FR-9, FR-10, FR-12
 **Notas de implementação:** reaproveita a infraestrutura e o domínio do Epic 1 (mesmas Lambdas, mesma tabela `TaskInstances`); adiciona as 2 Rotinas de horário fixo (sexta/domingo) e o intent de invocação direta.
+
+## Epic 1: Loop diário de accountability por voz
+
+Você configura suas tarefas por pilar (CLI local) e, a partir daí, a Alexa lembra você na hora certa, reconectando a tarefa ao seu propósito maior — e no fim da janela, confere se você executou. Se não executou, ela reage com compreensão e já sugere um novo horário.
+
+**FRs covered:** FR-1, FR-2, FR-3, FR-4, FR-5, FR-6, FR-11
+
+### Story 1.1: Fundação do backend e primeira Skill que responde
+
+As a usuário,
+I want uma Skill customizada básica hospedada na minha conta AWS respondendo a uma invocação simples,
+So that existe uma base publicável sobre a qual todo o resto do produto é construído.
+
+**Acceptance Criteria:**
+
+**Given** uma conta AWS configurada
+**When** rodo `sam deploy --guided`
+**Then** a Skill e as tabelas DynamoDB (`TaskInstances`, `PillarConfig`, vazias) são criadas na conta
+
+**Given** a Skill publicada em modo de desenvolvimento
+**When** digo "Alexa, abrir [nome da Skill]"
+**Then** ela responde com uma mensagem de boas-vindas
+
+### Story 1.2: Configurar pilar e propósito de uma tarefa
+
+As a usuário,
+I want associar um evento do meu Google Calendar a um pilar e a um propósito via linha de comando,
+So that a Skill saiba do que se trata a tarefa e por que ela importa. (FR-11)
+
+**Acceptance Criteria:**
+
+**Given** a tabela `PillarConfig` existe
+**When** rodo `associar-pilar.ts "nome do evento" saude "chegar na meta de dezembro"`
+**Then** um registro é criado na tabela
+
+**Given** um evento já associado
+**When** rodo o comando de novo pro mesmo evento com dados diferentes
+**Then** o registro é atualizado (upsert), não duplicado
+
+### Story 1.3: Ler o Google Calendar e detectar tarefas do dia
+
+As a usuário,
+I want que o sistema leia meu Google Calendar periodicamente e identifique tarefas configuradas,
+So that o lembrete saiba quando disparar.
+
+**Acceptance Criteria:**
+
+**Given** uma tarefa configurada no `PillarConfig` com evento hoje às 14h
+**When** o Poller roda
+**Then** um `TaskInstance` é criado com `status=pendente`, e `pillar`/`purpose`/`task_title` congelados no momento da criação
+
+**Given** um evento do calendário sem entrada correspondente no `PillarConfig`
+**When** o Poller roda
+**Then** nenhum `TaskInstance` é criado pra ele
+
+### Story 1.4: Lembrete de voz reconectado ao propósito
+
+As a usuário,
+I want receber um lembrete de voz no horário da tarefa que reconecta ao meu propósito maior,
+So that eu lembre por que aquilo importa, não só o que fazer. (FR-1, FR-2)
+
+**Acceptance Criteria:**
+
+**Given** um `TaskInstance` pendente cujo horário de lembrete chegou
+**When** o Poller detecta isso
+**Then** dispara o `reminder-trigger` com o `task_id`, e o status muda pra `lembrete_enviado` via `ConditionExpression`
+
+**Given** a Rotina recebe o trigger e a Custom Task correspondente roda
+**When** a Alexa fala o lembrete
+**Then** o texto reconecta a tarefa ao propósito — nunca apenas o título do evento
+
+**Given** o mesmo `reminder-trigger` é processado duas vezes (retry automático do Lambda)
+**When** a segunda tentativa roda
+**Then** o lembrete não é falado duas vezes (a `ConditionExpression` já não vale)
+
+### Story 1.5: Checkpoint com retry único e registro da resposta
+
+As a usuário,
+I want que a Alexa confira se executei a tarefa no fim da janela, com uma segunda chance se eu não responder na hora,
+So that minha execução (ou falta dela) fique registrada sem exigir atenção perfeita. (FR-3, FR-4, FR-5)
+
+**Acceptance Criteria:**
+
+**Given** uma tarefa em `lembrete_enviado` cujo fim de janela chegou
+**When** o `checkpoint-trigger` dispara
+**Then** a Alexa pergunta se a tarefa foi executada
+
+**Given** a pergunta foi feita
+**When** respondo "sim" ou "não" (ou sinônimo natural aceito pelo NLU)
+**Then** o status vira `respondido`, com a resposta registrada
+
+**Given** não respondo em ~10s
+**When** o tempo de espera se esgota
+**Then** a Alexa pergunta de novo uma vez, com frase de reprompt diferente da original
+
+**Given** não respondo à segunda tentativa
+**When** o tempo de espera se esgota de novo
+**Then** a sessão encerra, o status vira `sem_resposta`, e nenhuma nova tentativa é feita
+
+### Story 1.6: Reprogramação em tom compreensivo
+
+As a usuário,
+I want que, ao dizer que não fiz uma tarefa, a Alexa reaja sem cobrança e já sugira um novo horário,
+So that eu não perca o hábito de responder aos checkpoints por medo de julgamento. (FR-6)
+
+**Acceptance Criteria:**
+
+**Given** respondo "não" no checkpoint
+**When** a Alexa reage
+**Then** ela usa uma frase compreensiva (nunca de cobrança ou comparação) e sugere um horário concreto pra reprogramar
+
+**Given** aceito o horário sugerido
+**When** a reprogramação é confirmada
+**Then** uma nova `TaskInstance` é criada com o novo horário, `rescheduled_from` apontando pra instância original, e a original marcada `reagendado`
+
+**Given** essa nova instância existe
+**When** seu horário de lembrete chega
+**Then** o Poller a detecta (mesmo sem vir de um evento novo do Calendar) e dispara o lembrete normalmente
+
+### Story 1.7: Monitoramento do Poller
+
+As a usuário,
+I want ser avisado por e-mail se o Poller falhar,
+So that eu saiba se o mecanismo inteiro de lembretes parou de funcionar.
+
+**Acceptance Criteria:**
+
+**Given** o Poller lança uma exceção não tratada
+**When** o CloudWatch Alarm detecta a falha
+**Then** um e-mail de alerta é enviado via SNS
+
+**Given** o Poller roda normalmente
+**When** não há erros
+**Then** nenhum alerta é disparado
