@@ -73,8 +73,27 @@ UX-DR9: Resumo sob demanda entrega o mesmo conteúdo do agendado, sem o gate de 
 
 ### FR Coverage Map
 
-{{requirements_coverage_map}}
+FR-1: Epic 1 - Lembrete de voz no horário da tarefa
+FR-2: Epic 1 - Lembrete reconectado ao propósito maior
+FR-3: Epic 1 - Checkpoint pergunta se a tarefa foi executada
+FR-4: Epic 1 - Retry único do checkpoint em caso de silêncio
+FR-5: Epic 1 - Registro da resposta do checkpoint
+FR-6: Epic 1 - Reprogramação em tom compreensivo
+FR-7: Epic 2 - Resumo semanal agendado (sexta 18h)
+FR-8: Epic 2 - Retry do resumo (domingo 20h)
+FR-9: Epic 2 - Conteúdo do resumo por pilar (% + tarefas nominais)
+FR-10: Epic 2 - Fechamento de encorajamento do resumo
+FR-11: Epic 1 - Configuração de pilar/propósito via CLI (pré-requisito do FR-2)
+FR-12: Epic 2 - Resumo semanal sob demanda
 
 ## Epic List
 
-{{epics_list}}
+### Epic 1: Loop diário de accountability por voz
+Você configura suas tarefas por pilar (CLI local) e, a partir daí, a Alexa lembra você na hora certa, reconectando a tarefa ao seu propósito maior — e no fim da janela, confere se você executou. Se não executou, ela reage com compreensão e já sugere um novo horário. É o ciclo completo e utilizável sozinho: lembrete → execução → checkpoint → (registro ou reprogramação).
+**FRs covered:** FR-1, FR-2, FR-3, FR-4, FR-5, FR-6, FR-11
+**Notas de implementação:** inclui toda a fundação técnica que o loop diário exige — infraestrutura AWS (SAM: Lambdas, DynamoDB `TaskInstances`/`PillarConfig`, EventBridge Scheduled Rule), o mecanismo de Custom Trigger + Alexa Routines, a máquina de estados do checkpoint (AD-3), o mecanismo de reagendamento (AD-7), e o monitoramento do Poller (CloudWatch Alarm) — já que ele é o único ponto de disparo de todo esse ciclo.
+
+### Epic 2: Resumo semanal de progresso
+Toda sexta às 18h (ou domingo às 20h, se você não puder na sexta), a Alexa faz um balanço da semana, pilar por pilar — o que foi feito, o que ficou pra trás, e fecha com uma mensagem de encorajamento. Você também pode pedir esse resumo a qualquer momento, sem esperar o horário fixo. Constrói em cima dos dados que o Epic 1 já está registrando a cada checkpoint.
+**FRs covered:** FR-7, FR-8, FR-9, FR-10, FR-12
+**Notas de implementação:** reaproveita a infraestrutura e o domínio do Epic 1 (mesmas Lambdas, mesma tabela `TaskInstances`); adiciona as 2 Rotinas de horário fixo (sexta/domingo) e o intent de invocação direta.
