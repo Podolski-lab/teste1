@@ -1,5 +1,5 @@
 ---
-stepsCompleted: [1, 2, 3]
+stepsCompleted: [1, 2, 3, 4]
 inputDocuments:
   - _bmad-output/planning-artifacts/prds/prd-teste1-2026-09-17/prd.md
   - _bmad-output/planning-artifacts/architecture/architecture-teste1-2026-09-23/ARCHITECTURE-SPINE.md
@@ -114,7 +114,7 @@ So that existe uma base publicável sobre a qual todo o resto do produto é cons
 
 **Given** uma conta AWS configurada
 **When** rodo `sam deploy --guided`
-**Then** a Skill e as tabelas DynamoDB (`TaskInstances`, `PillarConfig`, vazias) são criadas na conta
+**Then** a Skill (Lambda + ASK SDK) é criada na conta, sem nenhuma tabela DynamoDB ainda — este story não precisa de persistência
 
 **Given** a Skill publicada em modo de desenvolvimento
 **When** digo "Alexa, abrir [nome da Skill]"
@@ -127,6 +127,10 @@ I want associar um evento do meu Google Calendar a um pilar e a um propósito vi
 So that a Skill saiba do que se trata a tarefa e por que ela importa. (FR-11)
 
 **Acceptance Criteria:**
+
+**Given** o template SAM é atualizado para incluir a tabela `PillarConfig`
+**When** rodo `sam deploy` de novo
+**Then** a tabela é criada, vazia
 
 **Given** a tabela `PillarConfig` existe
 **When** rodo `associar-pilar.ts "nome do evento" saude "chegar na meta de dezembro"`
@@ -143,6 +147,10 @@ I want que o sistema leia meu Google Calendar periodicamente e identifique taref
 So that o lembrete saiba quando disparar.
 
 **Acceptance Criteria:**
+
+**Given** o template SAM é atualizado para incluir a tabela `TaskInstances`, o Lambda Poller, e a EventBridge Scheduled Rule
+**When** rodo `sam deploy` de novo
+**Then** os três recursos são criados/atualizados na conta
 
 **Given** uma tarefa configurada no `PillarConfig` com evento hoje às 14h
 **When** o Poller roda
