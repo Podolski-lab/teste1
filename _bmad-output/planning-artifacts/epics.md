@@ -1,5 +1,5 @@
 ---
-stepsCompleted: [1]
+stepsCompleted: [1, 2]
 inputDocuments:
   - _bmad-output/planning-artifacts/prds/prd-teste1-2026-09-17/prd.md
   - _bmad-output/planning-artifacts/architecture/architecture-teste1-2026-09-23/ARCHITECTURE-SPINE.md
