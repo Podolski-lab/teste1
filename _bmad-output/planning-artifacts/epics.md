@@ -1,5 +1,5 @@
 ---
-stepsCompleted: [1, 2]
+stepsCompleted: [1, 2, 3]
 inputDocuments:
   - _bmad-output/planning-artifacts/prds/prd-teste1-2026-09-17/prd.md
   - _bmad-output/planning-artifacts/architecture/architecture-teste1-2026-09-23/ARCHITECTURE-SPINE.md
@@ -196,6 +196,10 @@ So that minha execução (ou falta dela) fique registrada sem exigir atenção p
 **When** o tempo de espera se esgota de novo
 **Then** a sessão encerra, o status vira `sem_resposta`, e nenhuma nova tentativa é feita
 
+**Given** a Alexa está no meio de falar a pergunta do checkpoint
+**When** eu começo a responder antes dela terminar (barge-in)
+**Then** ela para de falar e escuta minha resposta — o comportamento padrão de barge-in do ASK SDK não é desabilitado
+
 ### Story 1.6: Reprogramação em tom compreensivo
 
 As a usuário,
@@ -231,3 +235,69 @@ So that eu saiba se o mecanismo inteiro de lembretes parou de funcionar.
 **Given** o Poller roda normalmente
 **When** não há erros
 **Then** nenhum alerta é disparado
+
+## Epic 2: Resumo semanal de progresso
+
+Toda sexta às 18h (ou domingo às 20h, se você não puder na sexta), a Alexa faz um balanço da semana, pilar por pilar — o que foi feito, o que ficou pra trás, e fecha com uma mensagem de encorajamento. Você também pode pedir esse resumo a qualquer momento.
+
+**FRs covered:** FR-7, FR-8, FR-9, FR-10, FR-12
+
+### Story 2.1: Resumo semanal agendado com gate de disponibilidade
+
+As a usuário,
+I want que a Alexa pergunte se estou disponível antes de fazer o resumo, na sexta 18h (ou domingo 20h se eu não puder na sexta),
+So that o resumo só aconteça quando eu realmente puder prestar atenção. (FR-7, FR-8)
+
+**Acceptance Criteria:**
+
+**Given** sexta 18h chega
+**When** a Rotina dispara
+**Then** a Alexa pergunta se estou disponível para o resumo semanal
+
+**Given** respondo "não"
+**When** a resposta é registrada
+**Then** nenhum resumo é lido, e a Rotina de domingo 20h vai perguntar de novo
+
+**Given** não respondo em ~10s
+**When** o tempo de espera se esgota
+**Then** a Alexa pergunta de novo uma vez; se eu não responder de novo, a sessão encerra sem nova tentativa até domingo
+
+### Story 2.2: Conteúdo do resumo por pilar
+
+As a usuário,
+I want que o resumo mostre, pilar por pilar, o percentual concluído e a lista nominal do que foi feito e não feito,
+So that eu veja claramente onde estou avançando e onde estou travado. (FR-9)
+
+**Acceptance Criteria:**
+
+**Given** confirmo disponibilidade
+**When** a Alexa inicia o resumo
+**Then** ela percorre os 4 pilares em sequência, cada um com percentual concluído e lista nominal de tarefas feitas e não feitas
+
+**Given** um checkpoint ficou `sem_resposta` durante a semana
+**When** o resumo é calculado
+**Then** essa tarefa conta como não feita no percentual e na lista
+
+### Story 2.3: Fechamento de encorajamento
+
+As a usuário,
+I want que o resumo termine com uma mensagem de encorajamento ligada ao meu propósito maior,
+So that eu saia da conversa motivado, não cobrado. (FR-10)
+
+**Acceptance Criteria:**
+
+**Given** o resumo por pilar terminou
+**When** a Alexa encerra a conversa
+**Then** ela fala uma mensagem de encorajamento conectada ao propósito maior — nunca terminando só com números
+
+### Story 2.4: Resumo sob demanda
+
+As a usuário,
+I want pedir o resumo semanal a qualquer momento, sem esperar o horário agendado,
+So that eu possa conferir meu progresso quando estiver curioso, não só quando a Skill decidir. (FR-12)
+
+**Acceptance Criteria:**
+
+**Given** digo "Alexa, pergunta ao [nome da skill] o resumo da semana"
+**When** a Skill processa a invocação
+**Then** entrega o mesmo conteúdo do resumo agendado (Story 2.2/2.3), sem o gate de disponibilidade — o pedido explícito já é o consentimento
