@@ -2,7 +2,7 @@
 title: 'Configurar pilar e propósito de uma tarefa'
 type: 'feature'
 created: '2026-09-25'
-status: 'in-review'
+status: 'done'
 route: 'dispatch'
 review_loop_iteration: 0
 context: []
