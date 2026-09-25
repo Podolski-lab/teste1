@@ -88,6 +88,11 @@ Resources:
       Description: >-
         Entrypoint agendado (Story 1.3) - le eventos de hoje do Google
         Calendar e cria TaskInstances para os que casam com PillarConfig.
+      # Sobrescreve o Timeout de 8s do Globals (dimensionado pro handler de
+      # baixa latência da Alexa) - este é um job em lote agendado, com uma
+      # chamada à API do Calendar seguida de um loop sequencial de escritas
+      # no DynamoDB por evento.
+      Timeout: 60
       Environment:
         Variables:
           GOOGLE_SERVICE_ACCOUNT_KEY_BASE64: !Ref GoogleServiceAccountKeyBase64
@@ -157,3 +162,8 @@ Outputs:
       ARN do Lambda a configurar como endpoint da Skill no Alexa Developer
       Console (Endpoint > AWS Lambda ARN).
     Value: !GetAtt SkillHandlerFunction.Arn
+  PollerFunctionArn:
+    Description: >-
+      ARN do Lambda Poller (Story 1.3), criado por este template e disparado
+      pela regra agendada do EventBridge - não requer configuração manual.
+    Value: !GetAtt PollerFunction.Arn

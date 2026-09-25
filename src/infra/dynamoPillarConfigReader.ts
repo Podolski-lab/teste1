@@ -36,8 +36,12 @@ export async function getPillarConfigForEvent(
     return undefined;
   }
 
+  if (typeof item.pillar !== 'string' || typeof item.purpose !== 'string') {
+    return undefined;
+  }
+
   return {
-    pillar: item.pillar as string,
-    purpose: item.purpose as string,
+    pillar: item.pillar,
+    purpose: item.purpose,
   };
 }

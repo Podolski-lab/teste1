@@ -106,3 +106,10 @@ Isso cria/atualiza a tabela `TaskInstances`, o Lambda `assistente-pessoal-poller
 #### 6.5 Verificar
 
 Depois do deploy, crie um evento de teste hoje no seu calendário com o mesmo título já associado no passo 5, e aguarde até 10 minutos. Em **CloudWatch > Log groups > `/aws/lambda/assistente-pessoal-poller`**, cada execução loga uma linha JSON por evento processado (`Poller.event.processed`/`Poller.event.skipped`) — confirme que aparece `"outcome":"created"` para o evento de teste, e que um item com esse `task_id` foi criado na tabela `TaskInstances` (console do DynamoDB).
+
+**Guarde a chave com cuidado**: depois de codificar o arquivo `.json` baixado no passo 6.1.4 em base64 (passo 6.3), apague-o ou guarde-o em um cofre de segredos — ele é uma credencial viva da service account, não um artefato descartável.
+
+#### 6.6 Troubleshooting
+
+- **Erro 403/permission-denied nos logs do CloudWatch**: normalmente significa que o calendário não foi de fato compartilhado com o e-mail da service account (passo 6.2), ou que o e-mail compartilhado (passo 6.1.5) não é o mesmo usado na chave. Confira o compartilhamento e o `GoogleCalendarId` configurado.
+- **Erro de autenticação/parsing de JSON**: normalmente significa que a string base64 (passo 6.3) foi copiada incompleta/incorreta, ou que a chave foi baixada de novo (nova chave) sem recodificar e reimplantar o base64 correspondente.

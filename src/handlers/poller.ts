@@ -54,30 +54,56 @@ export async function handler(): Promise<void> {
   const docClient = DynamoDBDocumentClient.from(client);
 
   const today = todayInTimeZone(timeZone);
-  const events = await listTimedEventsForDay(calendarId, today, timeZone);
+
+  let events;
+  try {
+    events = await listTimedEventsForDay(calendarId, today, timeZone);
+  } catch (error) {
+    logStructured('Poller.failed', {
+      date: today,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    throw error;
+  }
 
   logStructured('Poller.started', { date: today, eventCount: events.length });
 
   for (const event of events) {
-    const pillarConfig = await getPillarConfigForEvent(docClient, event.summary);
-    const taskInstance = buildTaskInstanceIfMatched(event, pillarConfig, today);
-
-    if (!taskInstance) {
-      const outcome = event.start.dateTime ? 'no-match' : 'all-day-skipped';
+    if (!event.start.dateTime || !event.end.dateTime) {
       logStructured('Poller.event.skipped', {
         calendarEventId: event.id,
         title: event.summary,
-        outcome,
+        outcome: 'all-day-skipped',
       });
       continue;
     }
 
-    const result = await createTaskInstance(docClient, taskInstance);
-    logStructured('Poller.event.processed', {
-      calendarEventId: event.id,
-      taskId: taskInstance.task_id,
-      outcome: result === 'created' ? 'created' : 'already-exists',
-    });
+    try {
+      const pillarConfig = await getPillarConfigForEvent(docClient, event.summary);
+      const taskInstance = buildTaskInstanceIfMatched(event, pillarConfig, today);
+
+      if (!taskInstance) {
+        logStructured('Poller.event.skipped', {
+          calendarEventId: event.id,
+          title: event.summary,
+          outcome: 'no-match',
+        });
+        continue;
+      }
+
+      const result = await createTaskInstance(docClient, taskInstance);
+      logStructured('Poller.event.processed', {
+        calendarEventId: event.id,
+        taskId: taskInstance.task_id,
+        outcome: result === 'created' ? 'created' : 'already-exists',
+      });
+    } catch (error) {
+      logStructured('Poller.event.error', {
+        calendarEventId: event.id,
+        error: error instanceof Error ? error.message : String(error),
+      });
+      continue;
+    }
   }
 
   logStructured('Poller.finished', { date: today });

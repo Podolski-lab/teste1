@@ -84,7 +84,7 @@ function offsetMinutesAt(instant: Date, timeZone: string): number {
  * `timeZone` para o instante UTC correspondente. Duas iterações bastam pra
  * corrigir o offset perto de uma transição de horário de verão.
  */
-function zonedTimeToUtc(localDateTime: string, timeZone: string): Date {
+export function zonedTimeToUtc(localDateTime: string, timeZone: string): Date {
   const naiveUtcMillis = new Date(`${localDateTime}Z`).getTime();
   let offset = offsetMinutesAt(new Date(naiveUtcMillis), timeZone);
   offset = offsetMinutesAt(new Date(naiveUtcMillis - offset * 60_000), timeZone);
@@ -92,7 +92,7 @@ function zonedTimeToUtc(localDateTime: string, timeZone: string): Date {
 }
 
 /** `date` (`YYYY-MM-DD`) + 1 dia corrido, sem depender de fuso horário. */
-function nextCalendarDate(date: string): string {
+export function nextCalendarDate(date: string): string {
   const asUtcMidnight = new Date(`${date}T00:00:00Z`);
   asUtcMidnight.setUTCDate(asUtcMidnight.getUTCDate() + 1);
   return asUtcMidnight.toISOString().slice(0, 10);
@@ -133,16 +133,23 @@ export async function listTimedEventsForDay(
   const timeMin = zonedTimeToUtc(`${date}T00:00:00`, timeZone).toISOString();
   const timeMax = zonedTimeToUtc(`${nextCalendarDate(date)}T00:00:00`, timeZone).toISOString();
 
-  const response = await calendar.events.list({
-    calendarId,
-    timeMin,
-    timeMax,
-    timeZone,
-    singleEvents: true,
-    orderBy: 'startTime',
-  });
+  const items: calendar_v3.Schema$Event[] = [];
+  let pageToken: string | undefined;
 
-  return (response.data.items ?? [])
-    .map(toCalendarEvent)
-    .filter((event): event is CalendarEvent => event !== undefined);
+  do {
+    const response = await calendar.events.list({
+      calendarId,
+      timeMin,
+      timeMax,
+      timeZone,
+      singleEvents: true,
+      orderBy: 'startTime',
+      pageToken,
+    });
+
+    items.push(...(response.data.items ?? []));
+    pageToken = response.data.nextPageToken ?? undefined;
+  } while (pageToken);
+
+  return items.map(toCalendarEvent).filter((event): event is CalendarEvent => event !== undefined);
 }
