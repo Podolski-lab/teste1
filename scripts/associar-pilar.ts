@@ -44,11 +44,18 @@ export interface ParsedArgs {
  * Não valida o pilar — isso é responsabilidade de `validatePillar`.
  */
 export function parseArgs(args: string[]): ParsedArgs {
-  if (args.length < 3) {
+  if (args.length !== 3) {
     throw new UsageError(USAGE_MESSAGE);
   }
 
-  const [eventName, pillar, purpose] = args;
+  const [eventNameRaw, pillar, purposeRaw] = args;
+  const eventName = eventNameRaw.trim();
+  const purpose = purposeRaw.trim();
+
+  if (eventName.length === 0) {
+    throw new UsageError(USAGE_MESSAGE);
+  }
+
   return { eventName, pillar, purpose };
 }
 
@@ -57,7 +64,11 @@ export function parseArgs(args: string[]): ParsedArgs {
  * case-insensitive e retornando a forma normalizada (minúscula).
  */
 export function validatePillar(pillar: string): Pillar {
-  const normalized = pillar.trim().toLowerCase();
+  const normalized = pillar
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '');
 
   if (!(VALID_PILLARS as readonly string[]).includes(normalized)) {
     throw new InvalidPillarError(
@@ -95,7 +106,7 @@ async function main(): Promise<void> {
   const { eventName, pillar, purpose } = parseArgs(process.argv.slice(2));
   const validatedPillar = validatePillar(pillar);
 
-  const region = process.env.AWS_REGION ?? 'us-east-1';
+  const region = process.env.AWS_REGION || 'us-east-1';
   const client = new DynamoDBClient({ region });
   const docClient = DynamoDBDocumentClient.from(client);
 

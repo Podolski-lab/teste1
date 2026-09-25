@@ -1,0 +1,5 @@
+# Deferred Work
+
+- source_spec: `_bmad-output/implementation-artifacts/spec-1-2-configurar-pilar-e-propósito-de-uma-tarefa.md`
+  summary: No automated test exercises `scripts/associar-pilar.ts`'s `main()` function (error-message dispatch for `UsageError`/`InvalidPillarError` vs. generic errors, the `AWS_REGION` default, and threading validated args into `upsertPillarConfig`).
+  evidence: `main()` only runs when `require.main === module`, which the test suite never triggers, so a regression in its wiring (e.g. inverted error-type dispatch, wrong variable passed to `upsertPillarConfig`) would ship with `npm test` green. Deferred rather than patched because `main()` is a thin (~15-line) synchronous wrapper around three already-unit-tested pure functions, run once by a human from a terminal with no other callers — testing it would require mocking `process.argv`/console/module-load side effects, disproportionate to this story's scope. Revisit if `main()` grows real logic of its own, or if a future story adds another caller.

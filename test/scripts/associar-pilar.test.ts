@@ -27,6 +27,12 @@ describe('parseArgs', () => {
     expect(() => parseArgs(['Reunião de time', 'profissional'])).toThrow(UsageError);
   });
 
+  it('lança UsageError quando há mais de 3 argumentos', () => {
+    expect(() =>
+      parseArgs(['Reunião', 'de', 'time', 'profissional', 'Fechar Q4 no prazo']),
+    ).toThrow(UsageError);
+  });
+
   it('a UsageError inclui a mensagem de uso', () => {
     try {
       parseArgs([]);
@@ -35,6 +41,21 @@ describe('parseArgs', () => {
       expect(error).toBeInstanceOf(UsageError);
       expect((error as Error).message).toBe(USAGE_MESSAGE);
     }
+  });
+
+  it('lança UsageError quando eventName é vazio ou só espaços', () => {
+    expect(() => parseArgs(['', 'profissional', 'Fechar Q4 no prazo'])).toThrow(UsageError);
+    expect(() => parseArgs(['   ', 'profissional', 'Fechar Q4 no prazo'])).toThrow(UsageError);
+  });
+
+  it('remove espaços nas bordas de eventName e purpose', () => {
+    const parsed = parseArgs(['  Reunião de time  ', 'profissional', '  Fechar Q4 no prazo  ']);
+
+    expect(parsed).toEqual({
+      eventName: 'Reunião de time',
+      pillar: 'profissional',
+      purpose: 'Fechar Q4 no prazo',
+    });
   });
 });
 
@@ -46,6 +67,12 @@ describe('validatePillar', () => {
   it('aceita entrada case-insensitive e normaliza para minúsculas', () => {
     expect(validatePillar('SAUDE')).toBe('saude');
     expect(validatePillar('Projetos-Pessoais')).toBe('projetos-pessoais');
+  });
+
+  it('aceita "Saúde" com acento (grafia real em português) e normaliza para "saude"', () => {
+    expect(validatePillar('Saúde')).toBe('saude');
+    expect(validatePillar('SAÚDE')).toBe('saude');
+    expect(validatePillar('saúde')).toBe('saude');
   });
 
   it('lança InvalidPillarError para um pilar fora da lista fixa', () => {
