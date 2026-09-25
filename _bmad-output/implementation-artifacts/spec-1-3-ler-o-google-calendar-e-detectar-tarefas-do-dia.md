@@ -2,7 +2,7 @@
 title: 'Ler o Google Calendar e detectar tarefas do dia'
 type: 'feature'
 created: '2026-09-25'
-status: 'in-review'
+status: 'done'
 route: 'dispatch'
 review_loop_iteration: 0
 context: []
