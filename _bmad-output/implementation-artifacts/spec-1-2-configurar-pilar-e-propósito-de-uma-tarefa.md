@@ -2,7 +2,7 @@
 title: 'Configurar pilar e propósito de uma tarefa'
 type: 'feature'
 created: '2026-09-25'
-status: 'in-progress'
+status: 'in-review'
 route: 'dispatch'
 review_loop_iteration: 0
 context: []
@@ -46,11 +46,11 @@ baseline_commit: 'dbd71c594410188df16eaaeae34ebb1de812ff52'
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] `template.yaml` -- add `PillarConfigTable` resource, on-demand billing, PK `calendar_event_pattern` -- satisfies AC1
-- [ ] `package.json`, `tsconfig.json` -- add AWS SDK v3 DynamoDB deps, `ts-node`, `associar-pilar` npm script, `scripts/**/*.ts` in `tsconfig.include` -- foundation for the script
-- [ ] `scripts/associar-pilar.ts` -- parse args, validate pillar, upsert via `PutCommand` -- satisfies AC2/AC3
-- [ ] `test/scripts/associar-pilar.test.ts` -- unit tests for arg parsing/pillar validation (valid pillar, invalid pillar, missing args) -- covers the I/O matrix's Invalid pillar and Missing argument rows without needing live AWS
-- [ ] `README.md` -- document how to run the script locally -- closes the gap between `sam deploy` and actually using the CLI
+- [x] `template.yaml` -- add `PillarConfigTable` resource, on-demand billing, PK `calendar_event_pattern` -- satisfies AC1
+- [x] `package.json`, `tsconfig.json` -- add AWS SDK v3 DynamoDB deps, `ts-node`, `associar-pilar` npm script, `scripts/**/*.ts` in `tsconfig.include` -- foundation for the script
+- [x] `scripts/associar-pilar.ts` -- parse args, validate pillar, upsert via `PutCommand` -- satisfies AC2/AC3
+- [x] `test/scripts/associar-pilar.test.ts` -- unit tests for arg parsing/pillar validation, plus a mocked-`DynamoDBDocumentClient` test of `upsertPillarConfig` -- covers all four I/O matrix rows without needing live AWS
+- [x] `README.md` -- document how to run the script locally -- closes the gap between `sam deploy` and actually using the CLI
 
 **Acceptance Criteria:**
 - Given the updated `template.yaml`, when the user runs `sam deploy`, then `PillarConfig` is created empty, with no impact on `SkillHandlerFunction`
@@ -58,6 +58,10 @@ baseline_commit: 'dbd71c594410188df16eaaeae34ebb1de812ff52'
 - Given an event already associated, when the user runs the command again for the same event with different pillar/purpose, then the existing item is updated in place, not duplicated
 
 ## Implementation Notes
+
+- Original implementation pass tested only `parseArgs`/`validatePillar` (the Invalid pillar / Missing argument matrix rows). The orchestrating session's Matrix Test Audit found Create/Upsert untested; extracted the `PutCommand` call into an exported `upsertPillarConfig(docClient, ...)` function and added two tests against a mocked `DynamoDBDocumentClient` (`{ send: vi.fn() }`) — no real AWS credentials or network calls involved. All 4 matrix rows now have a passing covering test (18/18 total).
+- Verified locally: `npm run build` (0 errors, `scripts/` included), `npm test` (18/18 pass across 3 files), `sam validate --lint` (valid), and manual runs of the CLI with no args / an invalid pillar confirmed no AWS call is attempted before validation passes.
+- Not verified (requires the user's own AWS credentials, per AD-5/AD-6): an actual `sam deploy` creating `PillarConfig`, or a real `PutItem` write/upsert against a live table.
 
 ## Spec Change Log
 

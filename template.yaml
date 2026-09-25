@@ -1,9 +1,9 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Transform: AWS::Serverless-2016-10-31
 Description: >
-  Assistente Pessoal - backend da Alexa Skill (Story 1.1: apenas o Lambda
-  do skill handler, sem persistência - a tabela TaskInstances entra na
-  Story 1.2).
+  Assistente Pessoal - backend da Alexa Skill (Story 1.1: Lambda do skill
+  handler, sem persistência; Story 1.2: tabela PillarConfig, escrita só
+  pelo CLI local scripts/associar-pilar.ts).
 
 Globals:
   Function:
@@ -44,6 +44,23 @@ Resources:
     Properties:
       LogGroupName: !Sub /aws/lambda/${SkillHandlerFunction}
       RetentionInDays: 14
+
+  # Mapeamento evento de calendario -> pilar/proposito (FR-11), usado pelo Poller
+  # (Story 1.3) para resolver o pilar/proposito de uma tarefa. Escrita apenas pelo
+  # CLI local scripts/associar-pilar.ts (AD-5) - nenhum Lambda le ou escreve esta
+  # tabela nesta story. Nome fixo para o script referenciar sem ler outputs do
+  # CloudFormation.
+  PillarConfigTable:
+    Type: AWS::DynamoDB::Table
+    Properties:
+      TableName: PillarConfig
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: calendar_event_pattern
+          AttributeType: S
+      KeySchema:
+        - AttributeName: calendar_event_pattern
+          KeyType: HASH
 
 Outputs:
   SkillHandlerFunctionArn:
