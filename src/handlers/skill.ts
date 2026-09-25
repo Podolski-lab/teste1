@@ -30,7 +30,6 @@ const FALLBACK_ERROR_SPEECH =
  * Architecture Spine (Consistency Conventions > Estado & cross-cutting).
  */
 function logStructured(event: string, data: Record<string, unknown> = {}): void {
-  // eslint-disable-next-line no-console
   console.log(JSON.stringify({ event, ...data }));
 }
 
@@ -65,8 +64,13 @@ export const SessionEndedRequestHandler: RequestHandler = {
     const { request } = handlerInput.requestEnvelope;
     const reason =
       request.type === 'SessionEndedRequest' ? request.reason : 'UNKNOWN';
+    const error =
+      request.type === 'SessionEndedRequest' ? request.error : undefined;
 
-    logStructured('SessionEndedRequest.handled', { reason });
+    logStructured('SessionEndedRequest.handled', {
+      reason,
+      ...(error ? { error } : {}),
+    });
 
     // SessionEndedRequest não aceita outputSpeech - apenas encerra.
     return handlerInput.responseBuilder.getResponse();

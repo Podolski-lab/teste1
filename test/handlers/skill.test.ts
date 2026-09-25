@@ -95,6 +95,7 @@ describe('skill.ts LaunchRequestHandler', () => {
 describe('skill.ts GenericErrorHandler', () => {
   it('falls back to a short pt-BR apology and ends the session when no handler matches the request', async () => {
     const requestEnvelope = buildUnhandledIntentRequestEnvelope();
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined);
 
     const responseEnvelope = await invokeHandler(requestEnvelope);
 
@@ -106,6 +107,15 @@ describe('skill.ts GenericErrorHandler', () => {
       expect.stringContaining('Desculpa')
     );
     expect(responseEnvelope.response.shouldEndSession).toBe(true);
+
+    const loggedArg = logSpy.mock.calls
+      .map(([arg]) => arg as string)
+      .find((arg) => arg.includes('"event":"ErrorHandler.handled"'));
+    expect(loggedArg).toBeDefined();
+    const loggedPayload = JSON.parse(loggedArg as string) as { requestType?: string };
+    expect(loggedPayload.requestType).toBe('IntentRequest');
+
+    logSpy.mockRestore();
   });
 });
 
@@ -117,9 +127,13 @@ describe('skill.ts SessionEndedRequestHandler', () => {
     const responseEnvelope = await invokeHandler(requestEnvelope);
 
     expect(responseEnvelope.response.outputSpeech).toBeUndefined();
-    expect(logSpy).toHaveBeenCalledWith(
-      expect.stringContaining('"event":"SessionEndedRequest.handled"')
-    );
+
+    const loggedArg = logSpy.mock.calls
+      .map(([arg]) => arg as string)
+      .find((arg) => arg.includes('"event":"SessionEndedRequest.handled"'));
+    expect(loggedArg).toBeDefined();
+    const loggedPayload = JSON.parse(loggedArg as string) as { reason?: string };
+    expect(loggedPayload.reason).toBe('USER_INITIATED');
 
     logSpy.mockRestore();
   });

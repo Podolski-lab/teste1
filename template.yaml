@@ -32,8 +32,10 @@ Resources:
       Description: >-
         Entrypoint ASK SDK da Skill "assistente pessoal" - responde
         LaunchRequest/SessionEndedRequest/erros (Story 1.1, sem persistência).
-      # Somente permissão de escrita em CloudWatch Logs - nenhuma permissão de
-      # DynamoDB é concedida nesta story (AC explícita da spec 1.1).
+      # AWSLambdaBasicExecutionRole é a policy gerenciada padrão da AWS (escrita
+      # em CloudWatch Logs em geral, não restrita ao log group desta função) -
+      # nenhuma permissão de DynamoDB é concedida nesta story (AC explícita da
+      # spec 1.1).
       Policies:
         - AWSLambdaBasicExecutionRole
 
