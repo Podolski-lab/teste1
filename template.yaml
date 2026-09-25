@@ -23,7 +23,6 @@ Resources:
       BuildProperties:
         Minify: true
         Target: 'node24'
-        Sourcemap: true
         EntryPoints:
           - src/handlers/skill.ts
     Properties:

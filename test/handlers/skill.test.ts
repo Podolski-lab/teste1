@@ -1,10 +1,10 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { Context } from 'aws-lambda';
-import type { RequestEnvelope, ResponseEnvelope } from 'ask-sdk-model';
+import type { Request, RequestEnvelope, ResponseEnvelope } from 'ask-sdk-model';
 
 import { handler } from '../../src/handlers/skill';
 
-function buildLaunchRequestEnvelope(): RequestEnvelope {
+function buildRequestEnvelope(request: Request): RequestEnvelope {
   return {
     version: '1.0',
     session: {
@@ -21,13 +21,38 @@ function buildLaunchRequestEnvelope(): RequestEnvelope {
         apiAccessToken: 'test-api-access-token',
       },
     },
-    request: {
-      type: 'LaunchRequest',
-      requestId: 'amzn1.echo-api.request.test-request-id',
-      timestamp: new Date().toISOString(),
-      locale: 'pt-BR',
-    },
+    request,
   };
+}
+
+function buildLaunchRequestEnvelope(): RequestEnvelope {
+  return buildRequestEnvelope({
+    type: 'LaunchRequest',
+    requestId: 'amzn1.echo-api.request.test-request-id',
+    timestamp: new Date().toISOString(),
+    locale: 'pt-BR',
+  });
+}
+
+function buildUnhandledIntentRequestEnvelope(): RequestEnvelope {
+  return buildRequestEnvelope({
+    type: 'IntentRequest',
+    requestId: 'amzn1.echo-api.request.test-unhandled-intent',
+    timestamp: new Date().toISOString(),
+    locale: 'pt-BR',
+    dialogState: 'COMPLETED',
+    intent: { name: 'SomeIntentWithNoRegisteredHandler', confirmationStatus: 'NONE' },
+  });
+}
+
+function buildSessionEndedRequestEnvelope(): RequestEnvelope {
+  return buildRequestEnvelope({
+    type: 'SessionEndedRequest',
+    requestId: 'amzn1.echo-api.request.test-session-ended',
+    timestamp: new Date().toISOString(),
+    locale: 'pt-BR',
+    reason: 'USER_INITIATED',
+  });
 }
 
 const noopContext = {} as Context;
@@ -64,5 +89,38 @@ describe('skill.ts LaunchRequestHandler', () => {
       expect.stringContaining('assistente pessoal')
     );
     expect(responseEnvelope.response.shouldEndSession).toBe(true);
+  });
+});
+
+describe('skill.ts GenericErrorHandler', () => {
+  it('falls back to a short pt-BR apology and ends the session when no handler matches the request', async () => {
+    const requestEnvelope = buildUnhandledIntentRequestEnvelope();
+
+    const responseEnvelope = await invokeHandler(requestEnvelope);
+
+    const outputSpeech = responseEnvelope.response.outputSpeech;
+
+    expect(outputSpeech).toBeDefined();
+    expect(outputSpeech?.type).toBe('SSML');
+    expect(outputSpeech && 'ssml' in outputSpeech ? outputSpeech.ssml : '').toEqual(
+      expect.stringContaining('Desculpa')
+    );
+    expect(responseEnvelope.response.shouldEndSession).toBe(true);
+  });
+});
+
+describe('skill.ts SessionEndedRequestHandler', () => {
+  it('handles a SessionEndedRequest without throwing and without emitting output speech', async () => {
+    const requestEnvelope = buildSessionEndedRequestEnvelope();
+    const logSpy = vi.spyOn(console, 'log').mockImplementation(() => undefined);
+
+    const responseEnvelope = await invokeHandler(requestEnvelope);
+
+    expect(responseEnvelope.response.outputSpeech).toBeUndefined();
+    expect(logSpy).toHaveBeenCalledWith(
+      expect.stringContaining('"event":"SessionEndedRequest.handled"')
+    );
+
+    logSpy.mockRestore();
   });
 });

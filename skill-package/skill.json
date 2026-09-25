@@ -1,0 +1,38 @@
+{
+  "manifest": {
+    "manifestVersion": "1.0",
+    "publishingInformation": {
+      "locales": {
+        "pt-BR": {
+          "name": "assistente pessoal",
+          "summary": "Assistente pessoal de produtividade: lembretes ligados aos seus pilares e propósitos.",
+          "description": "Assistente pessoal de produtividade que ajuda você a manter o ritmo nas tarefas dos seus pilares de vida, lembrando por que cada tarefa importa e perguntando, ao final da janela de execução, se ela foi feita.",
+          "examplePhrases": [
+            "Alexa, abrir assistente pessoal"
+          ],
+          "keywords": [
+            "produtividade",
+            "rotina",
+            "hábitos",
+            "foco",
+            "pilares"
+          ]
+        }
+      },
+      "isAvailableWorldwide": false,
+      "distributionCountries": [
+        "BR"
+      ],
+      "testingInstructions": "Habilitar a skill em modo de desenvolvimento (Test tab, 'Development') e testar dizendo 'Alexa, abrir assistente pessoal'. A resposta esperada é uma fala de boas-vindas em português, sem necessidade de dados previamente cadastrados (Story 1.1 não tem persistência).",
+      "category": "ORGANIZERS_AND_ASSISTANTS"
+    },
+    "apis": {
+      "custom": {
+        "endpoint": {
+          "uri": "arn:aws:lambda:us-east-1:REPLACE_WITH_ACCOUNT_ID:function:assistente-pessoal-skill-handler"
+        },
+        "interfaces": []
+      }
+    }
+  }
+}

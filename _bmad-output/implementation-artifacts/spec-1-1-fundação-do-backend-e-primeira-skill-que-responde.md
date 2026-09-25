@@ -2,7 +2,7 @@
 title: 'Fundação do backend e primeira Skill que responde'
 type: 'feature'
 created: '2026-09-25'
-status: 'in-progress'
+status: 'in-review'
 route: 'dispatch'
 review_loop_iteration: 0
 context: []
@@ -49,19 +49,25 @@ baseline_commit: '3d9dee54dd55c80ea7170a5826cda6f558d4f0c9'
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] `package.json`, `tsconfig.json` -- initialize Node 24/TypeScript project with `ask-sdk-core`, `ask-sdk-model`, build/test scripts -- foundation for everything else
-- [ ] `src/domain/.gitkeep`, `src/infra/.gitkeep` -- create empty dirs matching Source Tree -- keeps later stories from having to restructure
-- [ ] `src/handlers/skill.ts` -- `LaunchRequestHandler` (welcome speech), `SessionEndedRequestHandler` (log-only stub), generic `ErrorHandler`, exported ASK SDK Lambda handler -- satisfies both ACs
-- [ ] `template.yaml` -- SAM template, one Lambda (nodejs24.x, esbuild), CloudWatch Logs-only IAM, no DynamoDB -- matches Story 1.1 AC precisely
-- [ ] `skill-package/skill.json`, `skill-package/interactionModels/custom/pt-BR.json` -- manifest + interaction model with chosen invocation name and required built-in intents -- what the user uploads manually (AD-6)
-- [ ] `README.md` -- "Setup" section with the exact manual steps (Developer Console skill creation, `sam deploy --guided`, wiring Lambda ARN as endpoint, uploading interaction model, enabling test) -- closes the gap `sam deploy` alone can't (it deploys AWS resources, not the Alexa-side skill registration)
-- [ ] `test/handlers/skill.test.ts` -- unit test: `LaunchRequest` produces a non-empty pt-BR speech response and `shouldEndSession: true` -- covers the I/O matrix's Launch row without needing a live Alexa/AWS environment
+- [x] `package.json`, `tsconfig.json` -- initialize Node 24/TypeScript project with `ask-sdk-core`, `ask-sdk-model`, build/test scripts -- foundation for everything else
+- [x] `src/domain/.gitkeep`, `src/infra/.gitkeep` -- create empty dirs matching Source Tree -- keeps later stories from having to restructure
+- [x] `src/handlers/skill.ts` -- `LaunchRequestHandler` (welcome speech), `SessionEndedRequestHandler` (log-only stub), generic `ErrorHandler`, exported ASK SDK Lambda handler -- satisfies both ACs
+- [x] `template.yaml` -- SAM template, one Lambda (nodejs24.x, esbuild), CloudWatch Logs-only IAM, no DynamoDB -- matches Story 1.1 AC precisely
+- [x] `skill-package/skill.json`, `skill-package/interactionModels/custom/pt-BR.json` -- manifest + interaction model with chosen invocation name and required built-in intents -- what the user uploads manually (AD-6)
+- [x] `README.md` -- "Setup" section with the exact manual steps (Developer Console skill creation, `sam deploy --guided`, wiring Lambda ARN as endpoint, uploading interaction model, enabling test) -- closes the gap `sam deploy` alone can't (it deploys AWS resources, not the Alexa-side skill registration)
+- [x] `test/handlers/skill.test.ts` -- unit tests: `LaunchRequest` (non-empty pt-BR speech, `shouldEndSession: true`), unmatched-intent request (routes to `GenericErrorHandler`, apology speech), `SessionEndedRequest` (no output speech, logs the reason) -- covers all three I/O matrix rows
 
 **Acceptance Criteria:**
 - Given the AWS SAM template with exactly one Lambda and no DynamoDB table, when the user runs `sam deploy --guided`, then only the Lambda (+ IAM role, log group) is created
 - Given the skill package uploaded to the Alexa Developer Console and the skill published in development mode, when the user says "Alexa, abrir assistente pessoal", then the Lambda returns a non-empty welcome speech response
 
 ## Implementation Notes
+
+- Added `esbuild` as an explicit devDependency (SAM's `esbuild` `BuildMethod` needs it resolvable; not in the original Code Map, small addition within footprint).
+- Original implementation pass covered the Launch matrix row only; the orchestrating session's Matrix Test Audit found the `Unhandled request` and `Session end` rows lacked tests and added them (`GenericErrorHandler` test drives an unmatched-intent request through the real ASK SDK dispatcher's "no suitable handler" error path; `SessionEndedRequestHandler` test asserts no output speech and that the structured log line fires). All 3 tests pass.
+- Verified locally: `npm run build` (tsc, 0 errors), `npm test` (3/3 vitest tests pass), `sam validate --lint` (valid, no AWS credentials needed), and the two `skill-package/*.json` files parse as valid JSON with all 4 required built-in intents present.
+- `sam validate` (without `--lint`) requires AWS credentials/region in SAM CLI 1.166.2 since it calls the CloudFormation API; `--lint` (local `cfn-lint`) was used instead to honor AD-6. Documented for the user in case they run the bare command.
+- Not verified (requires the user's own AWS/Amazon Developer accounts, per AD-6): actual `sam deploy`, Alexa Developer Console skill registration, and a live "Alexa, abrir assistente pessoal" round-trip on a real device. The README Setup section gives the exact manual steps, including the Lambda's "Alexa Skills Kit" trigger permission the console/template can't set without a live Skill ID.
 
 ## Spec Change Log
 
