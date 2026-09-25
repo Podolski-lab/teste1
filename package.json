@@ -15,7 +15,8 @@
     "@aws-sdk/client-dynamodb": "^3.1140.0",
     "@aws-sdk/lib-dynamodb": "^3.1140.0",
     "ask-sdk-core": "^2.14.0",
-    "ask-sdk-model": "^1.39.0"
+    "ask-sdk-model": "^1.39.0",
+    "googleapis": "^182.0.0"
   },
   "devDependencies": {
     "@types/aws-lambda": "^8.10.145",

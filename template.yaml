@@ -3,7 +3,8 @@ Transform: AWS::Serverless-2016-10-31
 Description: >
   Assistente Pessoal - backend da Alexa Skill (Story 1.1: Lambda do skill
   handler, sem persistência; Story 1.2: tabela PillarConfig, escrita só
-  pelo CLI local scripts/associar-pilar.ts).
+  pelo CLI local scripts/associar-pilar.ts; Story 1.3: Lambda Poller
+  agendado, tabela TaskInstances, leitura do Google Calendar).
 
 Globals:
   Function:
@@ -11,6 +12,28 @@ Globals:
     Timeout: 8
     MemorySize: 128
     Tracing: Active
+
+# Parâmetros de deploy exigidos pelo Poller (Story 1.3) - nenhum tem Default:
+# a chave da service account é segredo (NoEcho), e o calendário/fuso horário
+# são inerentemente específicos do usuário (ver Design Notes da spec 1.3) -
+# ambos exigidos em `sam deploy --guided`, nunca assumidos nesta sessão (AD-6).
+Parameters:
+  GoogleServiceAccountKeyBase64:
+    Type: String
+    NoEcho: true
+    Description: >-
+      Conteúdo do JSON da chave da service account do Google Cloud,
+      codificado em base64 (ver README, seção 6).
+  GoogleCalendarId:
+    Type: String
+    Description: >-
+      ID do Google Calendar pessoal do usuário (normalmente o próprio
+      endereço de e-mail), compartilhado com a service account acima.
+  UserTimeZone:
+    Type: String
+    Description: >-
+      Fuso horário IANA do usuário (ex.: America/Sao_Paulo), usado pelo
+      Poller para determinar a virada do dia.
 
 Resources:
   # Lambda que atende as requisições do ASK SDK (LaunchRequest, SessionEndedRequest,
@@ -45,6 +68,53 @@ Resources:
       LogGroupName: !Sub /aws/lambda/${SkillHandlerFunction}
       RetentionInDays: 14
 
+  # Lambda agendado (Story 1.3) que lê os eventos de hoje do Google Calendar,
+  # casa cada um contra PillarConfig e cria uma TaskInstance idempotente por
+  # evento casado. Não escreve em PillarConfig (AD-5 - só leitura aqui) nem
+  # dispara nenhum trigger da Alexa ainda (isso é Stories 1.4/1.5).
+  PollerFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: 'node24'
+        EntryPoints:
+          - src/handlers/poller.ts
+    Properties:
+      FunctionName: assistente-pessoal-poller
+      Handler: poller.handler
+      CodeUri: .
+      Description: >-
+        Entrypoint agendado (Story 1.3) - le eventos de hoje do Google
+        Calendar e cria TaskInstances para os que casam com PillarConfig.
+      Environment:
+        Variables:
+          GOOGLE_SERVICE_ACCOUNT_KEY_BASE64: !Ref GoogleServiceAccountKeyBase64
+          GOOGLE_CALENDAR_ID: !Ref GoogleCalendarId
+          USER_TIMEZONE: !Ref UserTimeZone
+      Policies:
+        - AWSLambdaBasicExecutionRole
+        - DynamoDBReadPolicy:
+            TableName: !Ref PillarConfigTable
+        - DynamoDBWritePolicy:
+            TableName: !Ref TaskInstancesTable
+      Events:
+        Poll:
+          Type: Schedule
+          Properties:
+            Schedule: rate(10 minutes)
+            Description: >-
+              Dispara o Poller a cada 10 minutos (intervalo escolhido na
+              implementação - ver Deferred da Architecture Spine, NFR-2).
+            Enabled: true
+
+  PollerFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${PollerFunction}
+      RetentionInDays: 14
+
   # Mapeamento evento de calendario -> pilar/proposito (FR-11), usado pelo Poller
   # (Story 1.3) para resolver o pilar/proposito de uma tarefa. Escrita apenas pelo
   # CLI local scripts/associar-pilar.ts (AD-5) - nenhum Lambda le ou escreve esta
@@ -62,6 +132,23 @@ Resources:
           AttributeType: S
       KeySchema:
         - AttributeName: calendar_event_pattern
+          KeyType: HASH
+
+  # Uma linha por instância de tarefa do dia (Story 1.3 / AD-3). task_id =
+  # {calendar_event_id}#{YYYY-MM-DD} (Consistency Conventions). Retain pelo
+  # mesmo motivo de PillarConfig: dado acumulado, caro de perder.
+  TaskInstancesTable:
+    Type: AWS::DynamoDB::Table
+    DeletionPolicy: Retain
+    UpdateReplacePolicy: Retain
+    Properties:
+      TableName: TaskInstances
+      BillingMode: PAY_PER_REQUEST
+      AttributeDefinitions:
+        - AttributeName: task_id
+          AttributeType: S
+      KeySchema:
+        - AttributeName: task_id
           KeyType: HASH
 
 Outputs:

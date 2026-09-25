@@ -2,7 +2,7 @@
 title: 'Ler o Google Calendar e detectar tarefas do dia'
 type: 'feature'
 created: '2026-09-25'
-status: 'in-progress'
+status: 'in-review'
 route: 'dispatch'
 review_loop_iteration: 0
 context: []
@@ -49,13 +49,13 @@ baseline_commit: 'd574f0fdbc7189e9bfd5ecde05b770a87b1c0728'
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] `template.yaml` -- `TaskInstancesTable`, `PollerFunction`, schedule, parameters, IAM -- satisfies AC1
-- [ ] `src/domain/taskDetection.ts` -- pure matching/freezing/shape logic -- satisfies AC2/AC3, AD-1/AD-2
-- [ ] `src/infra/googleCalendarClient.ts` -- service-account auth, list today's timed events -- foundation for the Poller
-- [ ] `src/infra/dynamoPillarConfigReader.ts`, `src/infra/dynamoTaskInstanceRepository.ts` -- read/write adapters -- satisfies AC2/AC3
-- [ ] `src/handlers/poller.ts` -- orchestrates the above, no domain logic inline -- satisfies AC1's Lambda, AD-2
-- [ ] `test/domain/taskDetection.test.ts`, `test/infra/dynamoTaskInstanceRepository.test.ts` -- cover all 4 I/O matrix rows -- Matrix Test Audit
-- [ ] `README.md` -- Google Cloud Console + deploy-parameter setup steps -- closes the gap between `sam deploy` and a working Poller
+- [x] `template.yaml` -- `TaskInstancesTable`, `PollerFunction`, schedule, parameters, IAM -- satisfies AC1
+- [x] `src/domain/taskDetection.ts` -- pure matching/freezing/shape logic -- satisfies AC2/AC3, AD-1/AD-2
+- [x] `src/infra/googleCalendarClient.ts` -- service-account auth, list today's timed events -- foundation for the Poller
+- [x] `src/infra/dynamoPillarConfigReader.ts`, `src/infra/dynamoTaskInstanceRepository.ts` -- read/write adapters -- satisfies AC2/AC3
+- [x] `src/handlers/poller.ts` -- orchestrates the above, no domain logic inline -- satisfies AC1's Lambda, AD-2
+- [x] `test/domain/taskDetection.test.ts`, `test/infra/dynamoTaskInstanceRepository.test.ts` -- cover all 4 I/O matrix rows -- Matrix Test Audit
+- [x] `README.md` -- Google Cloud Console + deploy-parameter setup steps -- closes the gap between `sam deploy` and a working Poller
 
 **Acceptance Criteria:**
 - Given the updated `template.yaml`, when the user runs `sam deploy`, then `TaskInstances`, `PollerFunction`, and its EventBridge schedule are created/updated, with `SkillHandlerFunction`/`PillarConfigTable` unaffected
@@ -63,6 +63,12 @@ baseline_commit: 'd574f0fdbc7189e9bfd5ecde05b770a87b1c0728'
 - Given a calendar event with no matching `PillarConfig` entry, when the Poller runs, then no `TaskInstance` is created for it
 
 ## Implementation Notes
+
+- `googleapis` was the only new dependency added; the JWT service-account client is accessed via `google.auth.JWT` (re-exported by `googleapis`) rather than importing `google-auth-library` directly, avoiding a phantom dependency.
+- Time-zone day-boundary conversion uses `Intl.DateTimeFormat` offset math (two-iteration correction near DST transitions) instead of a date library, keeping the dependency footprint minimal.
+- `googleCalendarClient.ts` has no dedicated unit test — it's Google-API-facing infra with no pure logic of its own beyond the offset math, exercised indirectly via `sam build`'s bundling step; matches the spec's Code Map, which only listed domain/repository tests.
+- Verified locally: `npm run build` (0 errors), `npm test` (31/31 pass across 5 files, 9 new), `sam validate --lint` (valid), `sam build` (extra check — esbuild bundles `googleapis` cleanly for both Lambdas), and confirmed via diff that `SkillHandlerFunction`/`PillarConfigTable` are unchanged.
+- Not verified (requires the user's own Google/AWS accounts, per AD-6): actual service-account creation, calendar sharing, `sam deploy`, or a live Poller run against real Calendar data.
 
 ## Spec Change Log
 
