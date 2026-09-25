@@ -29,7 +29,7 @@
 # - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
 # - Retrospective appends its action items to action_items; the status view surfaces open ones
 generated: 09-25-2026 14:02
-last_updated: 09-25-2026 17:30
+last_updated: 09-25-2026 18:00
 project: Assistente de Produtividade Pessoal com Alexa
 project_key: NOKEY
 tracking_system: file-system
@@ -37,7 +37,7 @@ story_location: _bmad-output/implementation-artifacts
 development_status:
   epic-1: in-progress
   1-1-fundação-do-backend-e-primeira-skill-que-responde: review
-  1-2-configurar-pilar-e-propósito-de-uma-tarefa: backlog
+  1-2-configurar-pilar-e-propósito-de-uma-tarefa: in-progress
   1-3-ler-o-google-calendar-e-detectar-tarefas-do-dia: backlog
   1-4-lembrete-de-voz-reconectado-ao-propósito: backlog
   1-5-checkpoint-com-retry-único-e-registro-da-resposta: backlog
