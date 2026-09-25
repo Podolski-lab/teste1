@@ -1,0 +1,52 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  Assistente Pessoal - backend da Alexa Skill (Story 1.1: apenas o Lambda
+  do skill handler, sem persistência - a tabela TaskInstances entra na
+  Story 1.2).
+
+Globals:
+  Function:
+    Runtime: nodejs24.x
+    Timeout: 8
+    MemorySize: 128
+    Tracing: Active
+
+Resources:
+  # Lambda que atende as requisições do ASK SDK (LaunchRequest, SessionEndedRequest,
+  # erros). Nomeado explicitamente para que o Lambda do Poller (Story 1.3) possa
+  # ser adicionado depois neste mesmo template sem exigir renomear este recurso.
+  SkillHandlerFunction:
+    Type: AWS::Serverless::Function
+    Metadata:
+      BuildMethod: esbuild
+      BuildProperties:
+        Minify: true
+        Target: 'node24'
+        Sourcemap: true
+        EntryPoints:
+          - src/handlers/skill.ts
+    Properties:
+      FunctionName: assistente-pessoal-skill-handler
+      Handler: skill.handler
+      CodeUri: .
+      Description: >-
+        Entrypoint ASK SDK da Skill "assistente pessoal" - responde
+        LaunchRequest/SessionEndedRequest/erros (Story 1.1, sem persistência).
+      # Somente permissão de escrita em CloudWatch Logs - nenhuma permissão de
+      # DynamoDB é concedida nesta story (AC explícita da spec 1.1).
+      Policies:
+        - AWSLambdaBasicExecutionRole
+
+  SkillHandlerFunctionLogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Sub /aws/lambda/${SkillHandlerFunction}
+      RetentionInDays: 14
+
+Outputs:
+  SkillHandlerFunctionArn:
+    Description: >-
+      ARN do Lambda a configurar como endpoint da Skill no Alexa Developer
+      Console (Endpoint > AWS Lambda ARN).
+    Value: !GetAtt SkillHandlerFunction.Arn
