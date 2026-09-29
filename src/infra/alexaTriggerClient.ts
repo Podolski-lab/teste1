@@ -93,7 +93,7 @@ export async function fireTrigger(
   accessToken: string,
   stage: TriggerStage = 'development'
 ): Promise<void> {
-  const url = stage === 'development' ? `${TRIGGER_INSTANCES_URL}/stages/development` : TRIGGER_INSTANCES_URL;
+  const url = stage === 'live' ? TRIGGER_INSTANCES_URL : `${TRIGGER_INSTANCES_URL}/stages/development`;
 
   const response = await fetch(url, {
     method: 'POST',
