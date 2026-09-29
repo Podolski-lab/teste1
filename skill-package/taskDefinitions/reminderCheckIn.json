@@ -1,0 +1,46 @@
+{
+  "$comment": "Rascunho best-effort (Story 1.4) — esta sessão não tinha acesso a developer.amazon.com pra confirmar o schema atual de Custom Task Definitions. Cruze este arquivo contra a documentação oficial da Amazon antes de registrar a Custom Task no Developer Console (ver README).",
+  "openapi": "3.0.0",
+  "info": {
+    "title": "ReminderCheckIn",
+    "version": "1",
+    "description": "Custom Task da Skill 'assistente pessoal' que fala o lembrete de uma TaskInstance, reconectado ao pilar/propósito, e a completa via Tasks.CompleteTask."
+  },
+  "paths": {
+    "/reminderCheckIn": {
+      "post": {
+        "operationId": "reminderCheckIn",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReminderCheckInInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Lembrete falado; a Custom Task é completada via diretiva Tasks.CompleteTask no próprio response da Skill, não por este corpo de resposta."
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ReminderCheckInInput": {
+        "type": "object",
+        "description": "Payload mínimo do reminder-trigger (AD-4): só task_id — o resto (pillar/purpose/task_title) é lido pela Skill direto de TaskInstances, nunca duplicado aqui.",
+        "properties": {
+          "task_id": {
+            "type": "string",
+            "description": "Chave primária do item em TaskInstances (formato {calendar_event_id}#{YYYY-MM-DD})."
+          }
+        },
+        "required": ["task_id"]
+      }
+    }
+  }
+}

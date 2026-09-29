@@ -37,6 +37,30 @@ export interface PillarConfigEntry {
 export const INITIAL_TASK_STATUS = 'pendente' as const;
 
 /**
+ * Segundo estado do ciclo de vida (Story 1.4 / AD-3) — atingido só via
+ * `transitionTaskStatus` (`src/infra/dynamoTaskInstanceRepository.ts`),
+ * depois que o Poller confirma que disparou `reminder-trigger` pra essa
+ * tarefa. Nenhum outro código escreve `TaskInstance.status` diretamente.
+ */
+export const REMINDER_SENT_STATUS = 'lembrete_enviado' as const;
+
+/**
+ * Máquina de estados completa de uma `TaskInstance` (AD-3 / Architecture
+ * Spine): `pendente` -> `lembrete_enviado` -> `aguardando_checkpoint` ->
+ * `respondido` | `sem_resposta` | `reagendado`. Esta story (1.4) só produz
+ * e lê os dois primeiros valores; os demais já entram no tipo agora pra ele
+ * não precisar mudar de novo nas Stories 1.5+ (dona de
+ * `aguardando_checkpoint` em diante).
+ */
+export type TaskStatus =
+  | typeof INITIAL_TASK_STATUS
+  | typeof REMINDER_SENT_STATUS
+  | 'aguardando_checkpoint'
+  | 'respondido'
+  | 'sem_resposta'
+  | 'reagendado';
+
+/**
  * Forma congelada de um item `TaskInstance` (AD-3): `pillar`/`purpose`/
  * `task_title` são copiados de `PillarConfig`/do evento no momento da
  * criação e nunca relidos ao vivo depois.
@@ -48,7 +72,7 @@ export interface TaskInstance {
   pillar: string;
   purpose: string;
   task_title: string;
-  status: typeof INITIAL_TASK_STATUS;
+  status: TaskStatus;
   checkpoint_attempts: 0;
   reminder_at: string;
   checkpoint_at: string;

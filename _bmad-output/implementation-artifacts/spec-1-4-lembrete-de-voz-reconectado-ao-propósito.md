@@ -2,7 +2,7 @@
 title: 'Lembrete de voz reconectado ao propósito'
 type: 'feature'
 created: '2026-09-29'
-status: 'in-progress'
+status: 'in-review'
 route: 'dispatch'
 review_loop_iteration: 0
 context: []
@@ -50,15 +50,15 @@ baseline_commit: '397d71b9f71e4f2eb54ebd7541a5c9e5b7d80697'
 ## Tasks & Acceptance
 
 **Execution:**
-- [ ] `src/domain/taskState.ts` -- `isReminderDue`, pillar labels, `buildReminderSpeech` -- satisfies AC2's content rule
-- [ ] `src/infra/dynamoTaskInstanceRepository.ts` -- `transitionTaskStatus`, `findPendingTasksWithReminderDue`, `getTaskInstance` -- satisfies AC1/AC3
-- [ ] `src/infra/alexaTriggerClient.ts` -- LWA token + MULTICAST trigger fire -- satisfies AC1
-- [ ] `src/handlers/poller.ts` -- reminder-dispatch phase -- satisfies AC1/AC3
-- [ ] `src/handlers/skill.ts` -- `ReminderTaskHandler` -- satisfies AC2
-- [ ] `template.yaml` -- new parameters/env vars -- foundation
-- [ ] `skill-package/skill.json`, `skill-package/taskDefinitions/reminderCheckIn.json` -- best-effort task registration files
-- [ ] `test/domain/taskState.test.ts`, `test/infra/dynamoTaskInstanceRepository.test.ts`, `test/infra/alexaTriggerClient.test.ts`, `test/handlers/skill.test.ts` -- cover all 4 I/O matrix rows
-- [ ] `README.md` -- manual setup steps + developer-preview caveat
+- [x] `src/domain/taskState.ts` -- `isReminderDue`, pillar labels, `buildReminderSpeech` -- satisfies AC2's content rule
+- [x] `src/infra/dynamoTaskInstanceRepository.ts` -- `transitionTaskStatus`, `findPendingTasksWithReminderDue`, `getTaskInstance` -- satisfies AC1/AC3
+- [x] `src/infra/alexaTriggerClient.ts` -- LWA token + MULTICAST trigger fire -- satisfies AC1
+- [x] `src/handlers/poller.ts` -- reminder-dispatch phase -- satisfies AC1/AC3
+- [x] `src/handlers/skill.ts` -- `ReminderTaskHandler` -- satisfies AC2
+- [x] `template.yaml` -- new parameters/env vars -- foundation
+- [x] `skill-package/skill.json`, `skill-package/taskDefinitions/reminderCheckIn.json` -- best-effort task registration files
+- [x] `test/domain/taskState.test.ts`, `test/infra/dynamoTaskInstanceRepository.test.ts`, `test/infra/alexaTriggerClient.test.ts`, `test/handlers/skill.test.ts` -- cover all 4 I/O matrix rows
+- [x] `README.md` -- manual setup steps + developer-preview caveat
 
 **Acceptance Criteria:**
 - Given a `pendente` `TaskInstance` whose `reminder_at` has arrived, when the Poller runs, then `reminder-trigger` fires with `{task_id}` and status becomes `lembrete_enviado` via `ConditionExpression`
@@ -66,6 +66,13 @@ baseline_commit: '397d71b9f71e4f2eb54ebd7541a5c9e5b7d80697'
 - Given the same `reminder-trigger` processed twice (Lambda retry), when the second attempt runs, then the reminder is not fired twice (the `ConditionExpression` no longer holds)
 
 ## Implementation Notes
+
+- `TaskInstance.status`'s type (in `src/domain/taskDetection.ts`, Story 1.3's file) was widened from the literal `'pendente'` to a `TaskStatus` union covering the full AD-3 state machine (`pendente` | `lembrete_enviado` | `aguardando_checkpoint` | `respondido` | `sem_resposta` | `reagendado`). This file wasn't in the Code Map, but `transitionTaskStatus`/`getTaskInstance` need it to type-check against a `TaskInstance` whose status may legitimately be `lembrete_enviado` by the time the Skill Handler reads it. `REMINDER_SENT_STATUS = 'lembrete_enviado'` lives there too, next to `INITIAL_TASK_STATUS`.
+- `findPendingTasksWithReminderDue` does **not** filter by `reminder_at` inside the DynamoDB `FilterExpression` — it Scans by `status = pendente` only (an unambiguous exact match) and then filters by time in memory via `isReminderDue` (pure, `Date`-based comparison). `reminder_at` is stored with the Google Calendar event's local offset (e.g. `-03:00`) while `nowIso` is typically UTC (`Z`); a DynamoDB `FilterExpression` only compares strings, not instants, so comparing those two formats server-side risked breaking chronological order at certain boundaries. Keeping the time comparison in the pure domain function sidesteps that correctness risk entirely, at negligible cost given the table's documented small scale.
+- `interfaces.tasks.CompleteTaskDirective.status` in the installed `ask-sdk-model` (`^1.39.0`) types as `Status = { code: string; message: string }` (an HTTP-status-code-flavored object), not a bare `'SUCCESSFUL'`/`'FAILED'` string as the I/O matrix's wording might suggest. `buildCompleteTaskDirective` in `src/handlers/skill.ts` maps the two semantic outcomes to `{ code: '200', ... }`/`{ code: '404', ... }` respectively, matching the real type so `npm run build` actually validates it (per the spec's own Verification command). Flagged here in case the real Alexa API expects something different from what this version of `ask-sdk-model` describes — cross-check against current docs alongside the other best-effort files.
+- The Trigger Instance API request body in `src/infra/alexaTriggerClient.ts` (`{ trigger: { name, payload }, delivery: 'MULTICAST' }`) is a best-effort reconstruction, same caveat as the registration files — this session had no access to developer.amazon.com to confirm the exact current shape.
+- Deviated from the Verification section's manual-check wording ("Confirm `SkillHandlerFunction`/`PillarConfigTable`/`TaskInstancesTable` resources are unchanged in the diff"): `SkillHandlerFunction` *does* change in this diff — it gains a `DynamoDBReadPolicy` on `TaskInstancesTable`, because `ReminderTaskHandler` (AC2, explicitly required by the Code Map) needs to read `TaskInstances` via `getTaskInstance`. There is no way to implement AC2 without granting that read. `PollerFunction` also gains a `DynamoDBReadPolicy` on `TaskInstancesTable` (for the new `Scan` in `findPendingTasksWithReminderDue`) in addition to its existing write policy. `PillarConfigTable`/`TaskInstancesTable`'s own schemas (`AttributeDefinitions`/`KeySchema`) are genuinely unchanged — no replacement, no data-loss risk.
+- **Orchestrating-session fix**: the implementation subagent's first pass sent the Trigger Instance API body as `{ trigger: { name, payload }, delivery }` — a reasonable independent reconstruction, but it didn't match this spec's own Design Notes, which were based on this session's earlier web research into the actual "Routines Trigger Instance REST API Reference" example bodies. The real shape is `{ request: { requestId, delivery, trigger: { name, parameters } } }`, with a fresh UUID `requestId` per call. Corrected directly in `src/infra/alexaTriggerClient.ts` and its test before proceeding to review, since this is a concrete, sourced fact this session already had, not a genuine ambiguity.
 
 ## Spec Change Log
 

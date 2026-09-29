@@ -1,9 +1,15 @@
 import { describe, expect, it, vi } from 'vitest';
 import { ConditionalCheckFailedException } from '@aws-sdk/client-dynamodb';
-import { PutCommand } from '@aws-sdk/lib-dynamodb';
+import { GetCommand, PutCommand, ScanCommand, UpdateCommand } from '@aws-sdk/lib-dynamodb';
 
-import { createTaskInstance, TASK_INSTANCES_TABLE_NAME } from '../../src/infra/dynamoTaskInstanceRepository';
-import { INITIAL_TASK_STATUS, TaskInstance } from '../../src/domain/taskDetection';
+import {
+  createTaskInstance,
+  findPendingTasksWithReminderDue,
+  getTaskInstance,
+  TASK_INSTANCES_TABLE_NAME,
+  transitionTaskStatus,
+} from '../../src/infra/dynamoTaskInstanceRepository';
+import { INITIAL_TASK_STATUS, REMINDER_SENT_STATUS, TaskInstance } from '../../src/domain/taskDetection';
 
 function buildTaskInstance(overrides: Partial<TaskInstance> = {}): TaskInstance {
   return {
@@ -80,5 +86,123 @@ describe('createTaskInstance', () => {
 
     expect(first).toBe('created');
     expect(second).toBe('already_exists');
+  });
+});
+
+describe('transitionTaskStatus', () => {
+  it('Reminder due: transitions pendente -> lembrete_enviado via UpdateCommand with a ConditionExpression on the prior status', async () => {
+    const docClient = buildMockDocClient();
+    docClient.send.mockResolvedValue({});
+
+    const result = await transitionTaskStatus(
+      docClient,
+      'evt-123#2026-09-25',
+      INITIAL_TASK_STATUS,
+      REMINDER_SENT_STATUS
+    );
+
+    expect(result).toBe('transitioned');
+    expect(docClient.send).toHaveBeenCalledTimes(1);
+    const command = docClient.send.mock.calls[0][0];
+    expect(command).toBeInstanceOf(UpdateCommand);
+    expect(command.input).toEqual({
+      TableName: TASK_INSTANCES_TABLE_NAME,
+      Key: { task_id: 'evt-123#2026-09-25' },
+      UpdateExpression: 'SET #status = :to',
+      ConditionExpression: '#status = :from',
+      ExpressionAttributeNames: { '#status': 'status' },
+      ExpressionAttributeValues: { ':from': INITIAL_TASK_STATUS, ':to': REMINDER_SENT_STATUS },
+    });
+  });
+
+  it('Already sent (retry): ConditionalCheckFailedException is caught and reported as already_transitioned, not thrown', async () => {
+    const docClient = buildMockDocClient();
+    docClient.send.mockRejectedValue(
+      new ConditionalCheckFailedException({ message: 'ConditionalCheckFailed', $metadata: {} })
+    );
+
+    const result = await transitionTaskStatus(
+      docClient,
+      'evt-123#2026-09-25',
+      INITIAL_TASK_STATUS,
+      REMINDER_SENT_STATUS
+    );
+
+    expect(result).toBe('already_transitioned');
+  });
+
+  it('propagates any other error instead of swallowing it', async () => {
+    const docClient = buildMockDocClient();
+    const otherError = new Error('ProvisionedThroughputExceededException');
+    docClient.send.mockRejectedValue(otherError);
+
+    await expect(
+      transitionTaskStatus(docClient, 'evt-123#2026-09-25', INITIAL_TASK_STATUS, REMINDER_SENT_STATUS)
+    ).rejects.toThrow(otherError);
+  });
+});
+
+describe('findPendingTasksWithReminderDue', () => {
+  it('Reminder due: scans for pendente items via FilterExpression, then keeps only the ones whose reminder_at has arrived', async () => {
+    const docClient = buildMockDocClient();
+    const dueTask = buildTaskInstance({
+      task_id: 'evt-due#2026-09-25',
+      reminder_at: '2026-09-25T14:00:00-03:00',
+    });
+    const notYetDueTask = buildTaskInstance({
+      task_id: 'evt-not-due#2026-09-25',
+      reminder_at: '2026-09-25T20:00:00-03:00',
+    });
+    docClient.send.mockResolvedValue({ Items: [dueTask, notYetDueTask] });
+
+    const result = await findPendingTasksWithReminderDue(docClient, '2026-09-25T17:00:00Z');
+
+    expect(docClient.send).toHaveBeenCalledTimes(1);
+    const command = docClient.send.mock.calls[0][0];
+    expect(command).toBeInstanceOf(ScanCommand);
+    expect(command.input).toEqual({
+      TableName: TASK_INSTANCES_TABLE_NAME,
+      FilterExpression: '#status = :pendente',
+      ExpressionAttributeNames: { '#status': 'status' },
+      ExpressionAttributeValues: { ':pendente': 'pendente' },
+    });
+    expect(result).toEqual([dueTask]);
+  });
+
+  it('returns an empty array when the Scan finds no items', async () => {
+    const docClient = buildMockDocClient();
+    docClient.send.mockResolvedValue({});
+
+    const result = await findPendingTasksWithReminderDue(docClient, '2026-09-25T17:00:00Z');
+
+    expect(result).toEqual([]);
+  });
+});
+
+describe('getTaskInstance', () => {
+  it('Task invocation: returns the TaskInstance for a known task_id via GetCommand', async () => {
+    const docClient = buildMockDocClient();
+    const item = buildTaskInstance();
+    docClient.send.mockResolvedValue({ Item: item });
+
+    const result = await getTaskInstance(docClient, item.task_id);
+
+    expect(result).toEqual(item);
+    expect(docClient.send).toHaveBeenCalledTimes(1);
+    const command = docClient.send.mock.calls[0][0];
+    expect(command).toBeInstanceOf(GetCommand);
+    expect(command.input).toEqual({
+      TableName: TASK_INSTANCES_TABLE_NAME,
+      Key: { task_id: item.task_id },
+    });
+  });
+
+  it('Unknown task_id: returns undefined instead of throwing when no item exists', async () => {
+    const docClient = buildMockDocClient();
+    docClient.send.mockResolvedValue({});
+
+    const result = await getTaskInstance(docClient, 'nao-existe#2026-09-25');
+
+    expect(result).toBeUndefined();
   });
 });
