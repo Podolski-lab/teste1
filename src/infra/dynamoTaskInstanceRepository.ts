@@ -113,16 +113,24 @@ export async function findPendingTasksWithReminderDue(
   docClient: Pick<DynamoDBDocumentClient, 'send'>,
   nowIso: string
 ): Promise<TaskInstance[]> {
-  const result = await docClient.send(
-    new ScanCommand({
-      TableName: TASK_INSTANCES_TABLE_NAME,
-      FilterExpression: '#status = :pendente',
-      ExpressionAttributeNames: { '#status': 'status' },
-      ExpressionAttributeValues: { ':pendente': 'pendente' },
-    })
-  );
+  const items: TaskInstance[] = [];
+  let exclusiveStartKey: Record<string, unknown> | undefined;
 
-  const items = (result.Items ?? []) as TaskInstance[];
+  do {
+    const result = await docClient.send(
+      new ScanCommand({
+        TableName: TASK_INSTANCES_TABLE_NAME,
+        FilterExpression: '#status = :pendente',
+        ExpressionAttributeNames: { '#status': 'status' },
+        ExpressionAttributeValues: { ':pendente': 'pendente' },
+        ExclusiveStartKey: exclusiveStartKey,
+      })
+    );
+
+    items.push(...((result.Items ?? []) as TaskInstance[]));
+    exclusiveStartKey = result.LastEvaluatedKey;
+  } while (exclusiveStartKey !== undefined);
+
   return items.filter((item) => isReminderDue(item, nowIso));
 }
 

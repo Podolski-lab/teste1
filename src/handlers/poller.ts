@@ -67,11 +67,6 @@ export async function handler(): Promise<void> {
   const timeZone = requiredEnvVar('USER_TIMEZONE');
   // GOOGLE_SERVICE_ACCOUNT_KEY_BASE64 é lida diretamente por
   // googleCalendarClient.ts (adaptador que a consome).
-  const skillMessagingClientId = requiredEnvVar('ALEXA_SKILL_MESSAGING_CLIENT_ID');
-  const skillMessagingClientSecret = requiredEnvVar('ALEXA_SKILL_MESSAGING_CLIENT_SECRET');
-  // Mira a stage de desenvolvimento por padrão (ver Intent da spec 1.4: testar
-  // contra development antes de qualquer certificação/publicação).
-  const triggerStage = (process.env.ALEXA_TRIGGER_STAGE as TriggerStage | undefined) ?? 'development';
 
   const client = new DynamoDBClient({});
   const docClient = DynamoDBDocumentClient.from(client);
@@ -131,7 +126,16 @@ export async function handler(): Promise<void> {
 
   // Fase de disparo de lembrete (Story 1.4) — roda depois da detecção acima,
   // independente do que aconteceu nela (uma TaskInstance pronta pro lembrete
-  // pode ter sido criada em qualquer execução anterior, não só nesta).
+  // pode ter sido criada em qualquer execução anterior, não só nesta). As
+  // credenciais/stage da Alexa só são exigidas a partir daqui — uma
+  // credencial ausente/malconfigurada não deve abortar a fase de detecção
+  // de tarefas acima, que é uma responsabilidade não relacionada.
+  const skillMessagingClientId = requiredEnvVar('ALEXA_SKILL_MESSAGING_CLIENT_ID');
+  const skillMessagingClientSecret = requiredEnvVar('ALEXA_SKILL_MESSAGING_CLIENT_SECRET');
+  // Mira a stage de desenvolvimento por padrão (ver Intent da spec 1.4: testar
+  // contra development antes de qualquer certificação/publicação).
+  const triggerStage = (process.env.ALEXA_TRIGGER_STAGE as TriggerStage | undefined) ?? 'development';
+
   const nowIso = new Date().toISOString();
   let dueTasks: TaskInstance[];
   try {
@@ -140,10 +144,15 @@ export async function handler(): Promise<void> {
     logStructured('Poller.reminder.scan.failed', {
       error: error instanceof Error ? error.message : String(error),
     });
-    dueTasks = [];
+    throw error;
   }
 
   logStructured('Poller.reminder.scan', { dueCount: dueTasks.length });
+
+  // Um único access token da LWA é suficiente pro ciclo de poll inteiro —
+  // evita uma troca de token por tarefa devida.
+  const accessToken =
+    dueTasks.length > 0 ? await getAccessToken(skillMessagingClientId, skillMessagingClientSecret) : undefined;
 
   for (const task of dueTasks) {
     try {
@@ -164,8 +173,7 @@ export async function handler(): Promise<void> {
       // Notes "Firing order" da spec 1.4: reverter reintroduziria a mesma
       // corrida de disparo duplo que o ConditionExpression existe pra evitar;
       // limitação aceita, não é retried automaticamente nesta story).
-      const accessToken = await getAccessToken(skillMessagingClientId, skillMessagingClientSecret);
-      await fireTrigger(REMINDER_TRIGGER_NAME, { task_id: task.task_id }, accessToken, triggerStage);
+      await fireTrigger(REMINDER_TRIGGER_NAME, { task_id: task.task_id }, accessToken as string, triggerStage);
       logStructured('Poller.reminder.sent', { taskId: task.task_id });
     } catch (error) {
       logStructured('Poller.reminder.failed', {

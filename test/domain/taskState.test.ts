@@ -26,10 +26,12 @@ describe('isReminderDue', () => {
     expect(isReminderDue(task, '2026-09-25T17:00:00Z')).toBe(true);
   });
 
-  it('is due exactly at reminder_at (inclusive boundary)', () => {
+  it('is due well after reminder_at (past due, not just exactly due)', () => {
     const task = buildTaskInstance({ reminder_at: '2026-09-25T14:00:00-03:00' });
 
-    expect(isReminderDue(task, '2026-09-25T17:00:00Z')).toBe(true);
+    // 2026-09-25T18:30:00Z is well after reminder_at (2026-09-25T17:00:00Z), unlike
+    // the preceding test which checks nowIso == reminder_at exactly.
+    expect(isReminderDue(task, '2026-09-25T18:30:00Z')).toBe(true);
   });
 
   it('is not due before reminder_at, even comparing across differing ISO offsets', () => {

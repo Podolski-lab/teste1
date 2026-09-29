@@ -31,6 +31,16 @@ const WELCOME_SPEECH =
 const FALLBACK_ERROR_SPEECH =
   'Desculpa, tive um problema para entender o seu pedido. Pode tentar de novo?';
 
+/**
+ * Nome fixo da Custom Task de lembrete (Story 1.4), registrado em
+ * `skill-package/skill.json` (`apis.custom.tasks`) e em
+ * `skill-package/taskDefinitions/reminderCheckIn.json`. Outras Custom Tasks
+ * (ex.: a de checkpoint da Story 1.5) chegam também como `LaunchRequest` com
+ * `task` preenchido, então `canHandle` precisa checar o nome, não só a
+ * presença de `task`.
+ */
+const REMINDER_TASK_NAME = 'ReminderCheckIn';
+
 // Criado uma vez por container do Lambda (fora dos handlers) e reusado entre
 // invocações warm — mesmo padrão de cliente AWS SDK recomendado pra Lambda.
 const dynamoClient = new DynamoDBClient({});
@@ -78,7 +88,11 @@ function buildCompleteTaskDirective(
 export const ReminderTaskHandler: RequestHandler = {
   canHandle(handlerInput: HandlerInput): boolean {
     const { request } = handlerInput.requestEnvelope;
-    return request.type === 'LaunchRequest' && Boolean(request.task);
+    return (
+      request.type === 'LaunchRequest' &&
+      Boolean(request.task) &&
+      request.task?.name === REMINDER_TASK_NAME
+    );
   },
   async handle(handlerInput: HandlerInput): Promise<Response> {
     const { request } = handlerInput.requestEnvelope;
@@ -93,23 +107,40 @@ export const ReminderTaskHandler: RequestHandler = {
         .getResponse();
     }
 
-    const taskInstance = await getTaskInstance(docClient, taskId);
+    try {
+      const taskInstance = await getTaskInstance(docClient, taskId);
 
-    if (!taskInstance) {
-      logStructured('ReminderTask.handled', { taskId, outcome: 'not-found' });
+      if (!taskInstance) {
+        logStructured('ReminderTask.handled', { taskId, outcome: 'not-found' });
+        return handlerInput.responseBuilder
+          .addDirective(buildCompleteTaskDirective('FAILED'))
+          .withShouldEndSession(true)
+          .getResponse();
+      }
+
+      logStructured('ReminderTask.handled', { taskId, outcome: 'spoken' });
+
+      return handlerInput.responseBuilder
+        .speak(buildReminderSpeech(taskInstance))
+        .addDirective(buildCompleteTaskDirective('SUCCESSFUL'))
+        .withShouldEndSession(true)
+        .getResponse();
+    } catch (error) {
+      // Uma falha (ex.: erro transiente do DynamoDB) não pode propagar pro
+      // GenericErrorHandler sem completar a Custom Task — isso deixaria a
+      // invocação da Routine pendurada, sem nunca receber
+      // `Tasks.CompleteTask`. Fecha como FAILED, igual ao caso "task_id
+      // desconhecido".
+      logStructured('ReminderTask.handled', {
+        taskId,
+        outcome: 'error',
+        error: error instanceof Error ? error.message : String(error),
+      });
       return handlerInput.responseBuilder
         .addDirective(buildCompleteTaskDirective('FAILED'))
         .withShouldEndSession(true)
         .getResponse();
     }
-
-    logStructured('ReminderTask.handled', { taskId, outcome: 'spoken' });
-
-    return handlerInput.responseBuilder
-      .speak(buildReminderSpeech(taskInstance))
-      .addDirective(buildCompleteTaskDirective('SUCCESSFUL'))
-      .withShouldEndSession(true)
-      .getResponse();
   },
 };
 
