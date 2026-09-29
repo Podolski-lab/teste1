@@ -1,0 +1,92 @@
+---
+title: 'Lembrete de voz reconectado ao propósito'
+type: 'feature'
+created: '2026-09-29'
+status: 'in-progress'
+route: 'dispatch'
+review_loop_iteration: 0
+context: []
+baseline_commit: '397d71b9f71e4f2eb54ebd7541a5c9e5b7d80697'
+---
+
+<frozen-after-approval reason="human-owned intent — do not modify unless human renegotiates">
+
+## Intent
+
+**Problem:** `TaskInstance` items exist (Story 1.3) but nothing fires a reminder or lets the user actually hear it. Without this, the whole daily accountability loop has no entry point.
+
+**Approach:** Extend the Poller to detect `pendente` tasks whose `reminder_at` has arrived, transition each to `lembrete_enviado` (idempotent, `ConditionExpression`-gated — the transition succeeding is what authorizes firing the trigger, preventing a Lambda retry from firing twice), and fire the pre-registered `reminder-trigger` Custom Trigger via the Alexa Routines Trigger Instance API. On the Skill side, add a handler for the resulting Custom Task invocation that reads the `TaskInstance` and speaks a reminder that reconnects to pillar/purpose — never just the event title. Per the user's decision: build and test this against the skill's **development stage** first; do not certify/publish. Two pieces of the mechanism (Custom Trigger and Custom Task registration schemas) are Amazon's own "developer preview" and can't be fully verified from this session (no access to developer.amazon.com) — best-effort files are provided, flagged for the user to adjust against the current official docs during manual setup.
+
+## Boundaries & Constraints
+
+**Always:** the Poller fires `reminder-trigger` with payload `{ task_id }` only (AD-4); firing is gated behind `transitionTaskStatus(pendente → lembrete_enviado)` succeeding first — a failed/already-applied transition means skip firing, never fire on every poll; `transitionTaskStatus` is the only place any code writes `TaskInstance.status` (AD-3); reminder speech always names the pillar and purpose, never the raw `task_title` alone (UX rule); the Alexa Skill Messaging client ID/secret are `NoEcho` SAM parameters → Lambda env vars, never touching this session (AD-6 extended); the Trigger Instance API call targets the **development stage** endpoint by default (`ALEXA_TRIGGER_STAGE` env var, default `development`).
+
+**Never:** no checkpoint logic yet (Story 1.5 owns `checkpoint-trigger` and the `aguardando_checkpoint`/`respondido`/`sem_resposta` transitions); no skill certification/publication performed or assumed in this session; no UNICAST delivery (would require a per-customer bearer token this session can't reliably source from documentation alone) — use MULTICAST, which needs no recipient and is operationally equivalent for a single-user skill.
+
+## I/O & Edge-Case Matrix
+
+| Scenario | Input / State | Expected Output / Behavior | Error Handling |
+|----------|--------------|---------------------------|----------------|
+| Reminder due | `TaskInstance.status = pendente`, `reminder_at <= now` | Status transitions to `lembrete_enviado`; `reminder-trigger` fired with `{task_id}` | N/A |
+| Already sent (retry) | Same task polled again, already `lembrete_enviado` | `ConditionExpression` fails; trigger not fired again | `ConditionalCheckFailedException` caught, not thrown |
+| Task invocation | Custom Task runs for a known `task_id` | Speech reconnects to pillar + purpose (never just `task_title`); `Tasks.CompleteTask` directive, `status: SUCCESSFUL` | N/A |
+| Unknown task_id | Custom Task runs for a `task_id` with no `TaskInstance` | No speech built from missing data; `Tasks.CompleteTask` directive, `status: FAILED` | Logged, no crash |
+
+</frozen-after-approval>
+
+## Code Map
+
+- `template.yaml` -- add `AlexaSkillMessagingClientId`/`AlexaSkillMessagingClientSecret` (`NoEcho`, no default) parameters, wired to `PollerFunction`'s env; no new table (reuses `TaskInstancesTable`).
+- `src/domain/taskState.ts` -- new. `isReminderDue(task, nowIso)` (pure predicate); `PILLAR_DISPLAY_LABELS` (`saude`→`Saúde` etc., for natural speech); `buildReminderSpeech(task)` using the exact EXPERIENCE.md phrase template.
+- `src/infra/dynamoTaskInstanceRepository.ts` -- extend (existing file, Story 1.3). Add `transitionTaskStatus(docClient, taskId, from, to)` (`UpdateCommand`, `ConditionExpression: '#status = :from'`, catches `ConditionalCheckFailedException` → `'already_transitioned'`); `findPendingTasksWithReminderDue(docClient, nowIso)` (`ScanCommand`+`FilterExpression` — table is small, a GSI is premature here); `getTaskInstance(docClient, taskId)` (`GetCommand`, used by the Skill-side handler).
+- `src/infra/alexaTriggerClient.ts` -- new (matches the Architecture Spine's planned filename). `getAccessToken(clientId, clientSecret)` (LWA client-credentials grant, `POST https://api.amazon.com/auth/o2/token`, `scope=alexa::routines:triggerinstances:write`, native `fetch` — no new HTTP dependency); `fireTrigger(triggerName, parameters, accessToken, stage)` (`POST https://api.amazonalexa.com/v1/routines/triggerInstances[/stages/development]`, `delivery: 'MULTICAST'` body).
+- `src/handlers/poller.ts` -- extend (Story 1.3). After the existing per-event detection loop, add a reminder-dispatch phase: `findPendingTasksWithReminderDue` → per task, try/catch (matching Story 1.3's established pattern): `transitionTaskStatus` → if transitioned, `getAccessToken` + `fireTrigger`; structured logs (`Poller.reminder.sent`/`already_sent`/`failed`).
+- `src/handlers/skill.ts` -- extend (Story 1.1). New `ReminderTaskHandler`, registered **before** the existing `LaunchRequestHandler`: `canHandle` matches a `LaunchRequest` carrying a `task` object (confirmed present on `ask-sdk-model`'s `LaunchRequest.task?: {name, version, input}`); reads `task_id` from `task.input`, calls `getTaskInstance`, builds speech via the domain function, responds with `.speak(...)` plus an `interfaces.tasks.CompleteTaskDirective` (`type: 'Tasks.CompleteTask'`, `status: 'SUCCESSFUL'`, confirmed to exist in `ask-sdk-model`'s response `Directive` union) and `shouldEndSession: true`; missing `TaskInstance` → same directive with `status: 'FAILED'`, no speech.
+- `skill-package/skill.json` -- add `apis.custom.tasks: [{ name: 'ReminderCheckIn', version: '1' }]` — best-effort; this session couldn't reach developer.amazon.com to confirm the exact current schema.
+- `skill-package/taskDefinitions/reminderCheckIn.json` -- new, best-effort OpenAPI 3.0 draft (task input schema: `task_id` string) per the publicly-available structure; flagged in README for the user to cross-check against Amazon's own docs during manual registration.
+- `README.md` -- new section: obtaining Skill Messaging credentials (Developer Console → Permissions → Send Alexa Events), registering the Custom Trigger + Custom Task definitions (manual, SMAPI/console — outside this session's reach), building the Routine with dynamic-parameter mapping (trigger's `task_id` → task's input), and an explicit caveat that this is Amazon's developer preview, tested in development stage only, with no documented guarantee of indefinite operation without certification.
+- `test/domain/taskState.test.ts`, `test/infra/dynamoTaskInstanceRepository.test.ts` (extend), `test/infra/alexaTriggerClient.test.ts`, `test/handlers/skill.test.ts` (extend) -- cover all 4 I/O matrix rows; the trigger client test mocks `fetch`, no live network.
+
+## Tasks & Acceptance
+
+**Execution:**
+- [ ] `src/domain/taskState.ts` -- `isReminderDue`, pillar labels, `buildReminderSpeech` -- satisfies AC2's content rule
+- [ ] `src/infra/dynamoTaskInstanceRepository.ts` -- `transitionTaskStatus`, `findPendingTasksWithReminderDue`, `getTaskInstance` -- satisfies AC1/AC3
+- [ ] `src/infra/alexaTriggerClient.ts` -- LWA token + MULTICAST trigger fire -- satisfies AC1
+- [ ] `src/handlers/poller.ts` -- reminder-dispatch phase -- satisfies AC1/AC3
+- [ ] `src/handlers/skill.ts` -- `ReminderTaskHandler` -- satisfies AC2
+- [ ] `template.yaml` -- new parameters/env vars -- foundation
+- [ ] `skill-package/skill.json`, `skill-package/taskDefinitions/reminderCheckIn.json` -- best-effort task registration files
+- [ ] `test/domain/taskState.test.ts`, `test/infra/dynamoTaskInstanceRepository.test.ts`, `test/infra/alexaTriggerClient.test.ts`, `test/handlers/skill.test.ts` -- cover all 4 I/O matrix rows
+- [ ] `README.md` -- manual setup steps + developer-preview caveat
+
+**Acceptance Criteria:**
+- Given a `pendente` `TaskInstance` whose `reminder_at` has arrived, when the Poller runs, then `reminder-trigger` fires with `{task_id}` and status becomes `lembrete_enviado` via `ConditionExpression`
+- Given the Routine/Custom Task invokes the Skill for that `task_id`, when Alexa speaks the reminder, then the text reconnects to pillar/purpose, never just the event title
+- Given the same `reminder-trigger` processed twice (Lambda retry), when the second attempt runs, then the reminder is not fired twice (the `ConditionExpression` no longer holds)
+
+## Implementation Notes
+
+## Spec Change Log
+
+## Review Triage Log
+
+## Design Notes
+
+**MULTICAST over UNICAST:** the Trigger Instance API's UNICAST delivery needs a `recipient` with a customer-scoped bearer token whose exact sourcing isn't confirmable from available documentation. MULTICAST needs no recipient at all and delivers to "all your customers" — for a single-user skill that's exactly equivalent to UNICAST-to-that-user, without the unresolved token question.
+
+**Scan, not a GSI:** `findPendingTasksWithReminderDue` scans `TaskInstances` with a filter rather than adding a GSI on `status`/`reminder_at`. At this project's scale (single user, a handful of tasks/day) a GSI is premature infrastructure; revisit only if item count grows enough for Scan cost/latency to matter.
+
+**Registration files are best-effort:** `skill-package/skill.json`'s `apis.custom.tasks` entry and `taskDefinitions/reminderCheckIn.json` follow the publicly-documented structure but this session could not fetch `developer.amazon.com` (network-blocked) to verify the exact current schema, and Amazon labels Custom Triggers for Routines a "developer preview" that "might change." The README tells the user to cross-check both files against the current official docs during manual setup — this is not a gap introduced by rushing, it's the ceiling of what's verifiable from here.
+
+**Firing order (transition-then-fire, not fire-then-transition):** if the trigger-fire API call fails after the status already transitioned to `lembrete_enviado`, the task is not retried automatically in this story — rolling the status back would reintroduce the exact double-fire race `ConditionExpression` exists to prevent. This is a known, accepted limitation (logged, not silent); a retry mechanism is out of scope here.
+
+## Verification
+
+**Commands:**
+- `npm run build` -- expected: TypeScript compiles with no errors (validates the `ask-sdk-model` `task`/`CompleteTaskDirective` types used above actually resolve as expected)
+- `npm test` -- expected: all tests pass, including the new/extended ones
+- `sam validate --lint` -- expected: `template.yaml` valid (no AWS credentials required)
+
+**Manual checks (if no CLI):**
+- Confirm `SkillHandlerFunction`/`PillarConfigTable`/`TaskInstancesTable` resources are unchanged in the diff.
