@@ -2,7 +2,7 @@
 title: 'Lembrete de voz reconectado ao propósito'
 type: 'feature'
 created: '2026-09-29'
-status: 'in-review'
+status: 'done'
 route: 'dispatch'
 review_loop_iteration: 0
 context: []
